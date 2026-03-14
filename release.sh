@@ -96,10 +96,9 @@ fi
 # 5. Create GitHub Release with APK
 echo ""
 echo "==> Creating GitHub Release v${VERSION}..."
-gh release create "v${VERSION}" \
-  "${APK_PATH}#wow-warband-companion-v${VERSION}.apk" \
-  --title "v${VERSION}" \
-  --notes "$(cat <<NOTES
+
+NOTES_FILE=$(mktemp)
+cat > "$NOTES_FILE" <<EOF
 ## WoW Warband Companion v${VERSION}
 
 ### What's Changed
@@ -108,8 +107,14 @@ ${CHANGELOG}
 ### Download
 - **Android**: Download the APK below
 - **Web**: [faizal97.github.io/wow-warband-companion](https://faizal97.github.io/wow-warband-companion/)
-NOTES
-)"
+EOF
+
+gh release create "v${VERSION}" \
+  "${APK_PATH}#wow-warband-companion-v${VERSION}.apk" \
+  --title "v${VERSION}" \
+  --notes-file "$NOTES_FILE"
+
+rm -f "$NOTES_FILE"
 
 # 6. Deploy Web to gh-pages
 echo ""
