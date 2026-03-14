@@ -240,15 +240,16 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
               Icons.arrow_back_rounded,
               color: AppTheme.textSecondary,
               size: 22,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           ),
-          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,6 +263,8 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
                       color: AppTheme.textTertiary,
                       letterSpacing: 1.5,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 Text(
                   widget.categoryName,
@@ -348,7 +351,7 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
             child: GestureDetector(
               onTap: () => setState(() => _filter = filter),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 decoration: BoxDecoration(
                   color: isActive
                       ? const Color(0xFF3FC7EB).withValues(alpha: 0.1)
@@ -546,6 +549,7 @@ class _AchievementCompactTile extends StatelessWidget {
               Text(
                 display.formattedDate!,
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiary),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ],
@@ -781,55 +785,63 @@ class _AchievementDetailSheet extends StatelessWidget {
                 Row(
                   children: [
                     if (parentDisplay != null)
-                      GestureDetector(
-                        onTap: () => _goBackToParent(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.surface,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.surfaceBorder, width: 1),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.arrow_back_rounded, color: AppTheme.textSecondary, size: 14),
-                              const SizedBox(width: 6),
-                              Text(
-                                parentDisplay!.achievement.name,
-                                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
-                              ),
-                            ],
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () => _goBackToParent(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.surfaceBorder, width: 1),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.arrow_back_rounded, color: AppTheme.textSecondary, size: 14),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    parentDisplay!.achievement.name,
+                                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    const Spacer(),
-                    if (categoryInfo != null)
-                      GestureDetector(
-                        onTap: () => _viewInCategory(context, categoryInfo.categoryId, categoryInfo.categoryName),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF3FC7EB).withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: const Color(0xFF3FC7EB).withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'View in category',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: const Color(0xFF3FC7EB),
-                                ),
+                    if (parentDisplay != null && categoryInfo != null)
+                      const SizedBox(width: 8),
+                    if (categoryInfo != null && parentDisplay != null)
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () => _viewInCategory(context, categoryInfo.categoryId, categoryInfo.categoryName),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3FC7EB).withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF3FC7EB).withValues(alpha: 0.2),
+                                width: 1,
                               ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF3FC7EB), size: 14),
-                            ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'View in category',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: const Color(0xFF3FC7EB),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.arrow_forward_rounded, color: Color(0xFF3FC7EB), size: 14),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1196,6 +1208,8 @@ class _MetaCriterionCard extends StatelessWidget {
                             ? AppTheme.textSecondary
                             : const Color(0xFF3FC7EB),
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       'Tap to view achievement',

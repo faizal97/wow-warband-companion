@@ -141,38 +141,41 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: const Icon(
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
               Icons.arrow_back_rounded,
               color: AppTheme.textSecondary,
               size: 22,
             ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'WOW WARBAND',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textTertiary,
-                  letterSpacing: 2,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'WOW WARBAND',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textTertiary,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Achievements',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                  height: 1.0,
+                const SizedBox(height: 4),
+                Text(
+                  'Achievements',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                    height: 1.0,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -577,6 +580,7 @@ class _RecentAchievementRow extends StatelessWidget {
           Text(
             _formatRelativeDate(display.completedTimestamp!),
             style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textTertiary),
+            overflow: TextOverflow.ellipsis,
           ),
       ],
     );
