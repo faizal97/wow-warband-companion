@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/character.dart';
 import '../models/equipped_item.dart';
 import '../models/mythic_plus_profile.dart';
+import '../models/achievement.dart';
 import '../models/raid_progression.dart';
 import 'battlenet_auth_service.dart';
 
@@ -16,6 +17,7 @@ class BattleNetApiService {
   static const String _apiBase = 'https://us.api.blizzard.com';
   static const String _namespace = 'profile-us';
   static const String _locale = 'en_US';
+  static const String _staticNamespace = 'static-us';
 
   BattleNetApiService(this._authService);
 
@@ -526,5 +528,173 @@ class BattleNetApiService {
 
     await Future.wait(futures);
     return iconMap;
+  }
+
+  /// Fetches the top-level achievement category index.
+  Future<List<AchievementCategoryRef>> getAchievementCategoriesIndex() async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/achievement-category/index?namespace=$_staticNamespace&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final categories = data['categories'] as List? ?? [];
+        return categories
+            .map((e) => AchievementCategoryRef.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Fetches a specific achievement category with subcategories and achievement refs.
+  Future<AchievementCategory?> getAchievementCategory(int categoryId) async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/achievement-category/$categoryId?namespace=$_staticNamespace&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return AchievementCategory.fromJson(data);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetches a single achievement definition with criteria tree.
+  Future<Achievement?> getAchievement(int achievementId) async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/achievement/$achievementId?namespace=$_staticNamespace&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return Achievement.fromJson(data);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetches achievement icon URL from media endpoint.
+  Future<String?> getAchievementMedia(int achievementId) async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/media/achievement/$achievementId?namespace=$_staticNamespace&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final assets = data['assets'] as List? ?? [];
+        for (final asset in assets) {
+          if (asset['key'] == 'icon') {
+            return asset['value'] as String?;
+          }
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetches account-wide achievement progress for a character.
+  Future<AccountAchievementProgress?> getCharacterAchievements(
+      String realmSlug, String characterName) async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
+
+    final name = characterName.toLowerCase();
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/profile/wow/character/$realmSlug/$name/achievements?namespace=$_namespace&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return AccountAchievementProgress.fromJson(data);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetches multiple achievement definitions in parallel.
+  Future<List<Achievement>> getAchievements(List<int> ids) async {
+    final results = await Future.wait(
+      ids.map((id) => getAchievement(id)),
+    );
+    return results.whereType<Achievement>().toList();
+  }
+
+  /// Enriches achievements with icon URLs by fetching media endpoints in parallel.
+  Future<List<Achievement>> enrichAchievementIcons(List<Achievement> achievements) async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return achievements;
+
+    final result = List<Achievement>.from(achievements);
+    final futures = <Future>[];
+
+    for (var i = 0; i < result.length; i++) {
+      final ach = result[i];
+      if (ach.iconUrl != null) continue;
+
+      final href = ach.mediaHref;
+      if (href == null) continue;
+
+      final index = i;
+      futures.add(() async {
+        try {
+          final response = await http.get(
+            Uri.parse(href),
+            headers: {'Authorization': 'Bearer $token'},
+          );
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            final assets = data['assets'] as List? ?? [];
+            for (final asset in assets) {
+              if (asset['key'] == 'icon') {
+                result[index] = result[index].copyWith(iconUrl: asset['value'] as String?);
+                break;
+              }
+            }
+          }
+        } catch (_) {}
+      }());
+    }
+
+    await Future.wait(futures);
+    return result;
   }
 }
