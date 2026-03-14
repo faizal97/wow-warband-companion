@@ -84,7 +84,7 @@ class _UpdateDialogContent extends StatelessWidget {
             Text(
               'A new version is available with improvements and bug fixes.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
               ),
@@ -130,7 +130,7 @@ class _UpdateDialogContent extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 'Later',
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   color: AppTheme.textTertiary,
                 ),

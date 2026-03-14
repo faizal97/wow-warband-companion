@@ -137,7 +137,7 @@ class EquipmentGrid extends StatelessWidget {
       child: Center(
         child: Text(
           'No equipment data',
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: AppTheme.textTertiary,
           ),
@@ -179,7 +179,7 @@ class _EquipmentCell extends StatelessWidget {
                   // Item name
                   Text(
                     item.itemName,
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: qualityColor,
@@ -197,7 +197,7 @@ class _EquipmentCell extends StatelessWidget {
                           ...item.enchantments,
                           ...item.sockets,
                         ].join(' · '),
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.inter(
                           fontSize: 10,
                           color: const Color(0xFF1EFF00),
                         ),

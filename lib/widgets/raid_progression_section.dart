@@ -260,7 +260,7 @@ class RaidProgressionSection extends StatelessWidget {
       child: Center(
         child: Text(
           'No raid data available',
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: AppTheme.textTertiary,
           ),

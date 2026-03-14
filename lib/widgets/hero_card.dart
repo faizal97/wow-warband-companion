@@ -138,7 +138,7 @@ class HeroCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         '${character.activeSpec} ${character.characterClass}',
-                        style: GoogleFonts.dmSans(
+                        style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: classColor,
@@ -152,7 +152,7 @@ class HeroCard extends StatelessWidget {
                 // Race + Realm
                 Text(
                   '${character.race} · ${character.realm}',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppTheme.textTertiary,
                   ),

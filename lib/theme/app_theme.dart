@@ -54,7 +54,7 @@ class AppTheme {
             fontWeight: FontWeight.w600,
             color: textPrimary,
           ),
-          // Body — switch to DM Sans for readability
+          // Body — switch to Inter for readability
           bodyLarge: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w400,

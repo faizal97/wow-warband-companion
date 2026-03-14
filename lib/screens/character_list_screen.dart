@@ -167,7 +167,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
                             _searchQuery.isNotEmpty
                                 ? 'No characters matching "$_searchQuery"'
                                 : 'No characters found',
-                            style: GoogleFonts.dmSans(
+                            style: GoogleFonts.inter(
                               fontSize: 14,
                               color: AppTheme.textTertiary,
                             ),
@@ -303,13 +303,13 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
       child: TextField(
         controller: _searchController,
         autofocus: true,
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.inter(
           fontSize: 14,
           color: AppTheme.textPrimary,
         ),
         decoration: InputDecoration(
           hintText: 'Search by name...',
-          hintStyle: GoogleFonts.dmSans(
+          hintStyle: GoogleFonts.inter(
             fontSize: 14,
             color: AppTheme.textTertiary,
           ),
@@ -349,7 +349,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
         children: [
           Text(
             '${filtered.length} characters',
-            style: GoogleFonts.dmSans(
+            style: GoogleFonts.inter(
               fontSize: 13,
               color: AppTheme.textTertiary,
             ),
@@ -395,7 +395,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             const SizedBox(width: 6),
             Text(
               isActive ? _sortByLabel(_sortBy) : 'Sort',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isActive
@@ -488,7 +488,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             const SizedBox(width: 14),
             Text(
               _sortByLabel(sortBy),
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                 color: isSelected
@@ -534,7 +534,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             const SizedBox(width: 6),
             Text(
               isActive ? _groupByLabel(_groupBy!) : 'Group',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isActive
@@ -644,7 +644,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
                 children: [
                   Text(
                     _groupByLabel(groupBy),
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -656,7 +656,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
                   const SizedBox(height: 2),
                   Text(
                     values.join(', '),
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.textTertiary,
                     ),
@@ -712,7 +712,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             const SizedBox(width: 6),
             Text(
               '($count)',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 11,
                 color: AppTheme.textTertiary,
               ),
@@ -759,7 +759,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
                   color: AppTheme.textSecondary),
               title: Text(
                 'Sign Out',
-                style: GoogleFonts.dmSans(color: AppTheme.textPrimary),
+                style: GoogleFonts.inter(color: AppTheme.textPrimary),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -960,7 +960,7 @@ class _CharacterCard extends StatelessWidget {
         lastLogin != null
             ? '${character.activeSpec} ${character.characterClass} · $lastLogin'
             : '${character.activeSpec} ${character.characterClass}',
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.inter(
           fontSize: 13,
           color: AppTheme.textSecondary,
         ),
@@ -973,7 +973,7 @@ class _CharacterCard extends StatelessWidget {
       highlightColor: AppTheme.textTertiary,
       child: Text(
         '${character.race} ${character.characterClass}',
-        style: GoogleFonts.dmSans(
+        style: GoogleFonts.inter(
           fontSize: 13,
           color: AppTheme.textSecondary,
         ),

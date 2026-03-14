@@ -73,7 +73,7 @@ class CharacterSelector extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     character.name,
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,

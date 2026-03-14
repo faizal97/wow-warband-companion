@@ -72,7 +72,7 @@ class LoginScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Your characters, at a glance',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppTheme.textSecondary,
                     ),
@@ -110,7 +110,7 @@ class LoginScreen extends StatelessWidget {
                     onPressed: () => _skipLogin(context),
                     child: Text(
                       'Continue with demo data',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         color: AppTheme.textTertiary,
                       ),

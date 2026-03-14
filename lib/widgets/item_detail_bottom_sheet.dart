@@ -64,7 +64,7 @@ class ItemDetailBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Text(
               '${item.slotDisplayName}  \u00b7  Item Level ${item.itemLevel}',
-              style: GoogleFonts.dmSans(
+              style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppTheme.textSecondary,
               ),
@@ -115,7 +115,7 @@ class ItemDetailBottomSheet extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     item.setName!,
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                       color: const Color(0xFF1EFF00),
@@ -170,7 +170,7 @@ class ItemDetailBottomSheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       entry,
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         color: color.withValues(alpha: 0.9),
                       ),

@@ -145,7 +145,7 @@ class _MythicPlusSectionState extends State<MythicPlusSection> {
               ),
               child: Text(
                 label,
-                style: GoogleFonts.dmSans(
+                style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   color: isSelected
@@ -288,7 +288,7 @@ class _MythicPlusSectionState extends State<MythicPlusSection> {
       child: Center(
         child: Text(
           'No Mythic+ data available',
-          style: GoogleFonts.dmSans(
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: AppTheme.textTertiary,
           ),
@@ -405,7 +405,7 @@ class _DungeonCell extends StatelessWidget {
                 // Dungeon name
                 Text(
                   run.dungeonName,
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,

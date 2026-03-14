@@ -82,7 +82,7 @@ class CharacterListTile extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     '${character.activeSpec} ${character.characterClass} · ${character.realm}',
-                    style: GoogleFonts.dmSans(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppTheme.textTertiary,
                     ),

@@ -155,7 +155,7 @@ class CharacterSummaryCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       '${character.activeSpec} ${character.characterClass}',
-                      style: GoogleFonts.dmSans(
+                      style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: classColor,
@@ -168,7 +168,7 @@ class CharacterSummaryCard extends StatelessWidget {
                 // Race + Realm
                 Text(
                   '${character.race} · ${character.realm}',
-                  style: GoogleFonts.dmSans(
+                  style: GoogleFonts.inter(
                     fontSize: 13,
                     color: AppTheme.textTertiary,
                   ),
