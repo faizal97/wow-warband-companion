@@ -1,0 +1,1 @@
+ /Users/fayz/Code/Personal/mobile-wow-companion/.dart_tool/flutter_build/caa192b3b82a5cd63710fb2c8509eb76/dart_build_result.json:  /Users/fayz/Code/Personal/mobile-wow-companion/.dart_tool/package_config.json /Users/fayz/Code/Personal/mobile-wow-companion/pubspec.yaml /opt/homebrew/share/flutter/bin/cache/dart-sdk/version
