@@ -41,6 +41,19 @@ class MergedAchievements {
   List<AchievementDisplay> get all => [...incomplete, ...completed];
 }
 
+/// A search result with category context for navigation.
+class AchievementSearchResult {
+  final Achievement achievement;
+  final int categoryId;
+  final String categoryPath;
+
+  const AchievementSearchResult({
+    required this.achievement,
+    required this.categoryId,
+    required this.categoryPath,
+  });
+}
+
 /// Manages achievement state: categories, definitions, and player progress.
 class AchievementProvider extends ChangeNotifier {
   final BattleNetApiService _apiService;
@@ -56,6 +69,8 @@ class AchievementProvider extends ChangeNotifier {
   final Map<int, AchievementCategory> _categoryDetails = {};
   final Map<int, List<Achievement>> _categoryAchievements = {};
   final Map<int, bool> _categoryLoading = {};
+  List<AchievementDisplay> _recentlyCompleted = [];
+  bool _isRecentLoading = false;
 
   AchievementProvider(this._apiService, this._cacheService);
 
@@ -64,6 +79,8 @@ class AchievementProvider extends ChangeNotifier {
   bool get isCategoriesLoading => _isCategoriesLoading;
   bool get isProgressLoading => _isProgressLoading;
   String? get error => _error;
+  List<AchievementDisplay> get recentlyCompleted => _recentlyCompleted;
+  bool get isRecentLoading => _isRecentLoading;
 
   bool isCategoryLoading(int categoryId) => _categoryLoading[categoryId] ?? false;
 
@@ -73,6 +90,60 @@ class AchievementProvider extends ChangeNotifier {
   List<Achievement>? getCategoryAchievements(int categoryId) =>
       _categoryAchievements[categoryId];
 
+  // In-game category display order. Categories not in this list appear at the end.
+  static const _categoryOrder = [
+    'Characters',
+    'Quests',
+    'Exploration',
+    'Housing',
+    'Delves',
+    'Player vs. Player',
+    'Dungeons & Raids',
+    'Professions',
+    'Reputation',
+    'World Events',
+    'Pet Battles',
+    'Collections',
+    'Expansion Features',
+    'Feats of Strength',
+    'Legacy',
+  ];
+
+  // Expansion/zone subcategory display order (WoW expansion timeline).
+  static const _subcategoryOrder = [
+    'Eastern Kingdoms',
+    'Kalimdor',
+    'Outland',
+    'Northrend',
+    'Cataclysm',
+    'Pandaria',
+    'Draenor',
+    'Legion',
+    'Battle for Azeroth',
+    'Shadowlands',
+    'Dragonflight',
+    'Dragon Isles',
+    'War Within',
+    'Midnight',
+  ];
+
+  /// Sorts a list of category refs using a priority list, unknowns at end.
+  static List<AchievementCategoryRef> _sortRefs(
+    List<AchievementCategoryRef> refs,
+    List<String> order,
+  ) {
+    final sorted = List<AchievementCategoryRef>.from(refs);
+    sorted.sort((a, b) {
+      final aIndex = order.indexOf(a.name);
+      final bIndex = order.indexOf(b.name);
+      final aOrder = aIndex == -1 ? order.length : aIndex;
+      final bOrder = bIndex == -1 ? order.length : bIndex;
+      if (aOrder != bOrder) return aOrder.compareTo(bOrder);
+      return a.name.compareTo(b.name);
+    });
+    return sorted;
+  }
+
   /// Loads the top-level achievement categories.
   Future<void> loadCategories() async {
     _isCategoriesLoading = true;
@@ -80,7 +151,8 @@ class AchievementProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _topCategories = await _apiService.getAchievementCategoriesIndex();
+      final categories = await _apiService.getAchievementCategoriesIndex();
+      _topCategories = _sortRefs(categories, _categoryOrder);
     } catch (e) {
       _error = 'Failed to load categories';
     }
@@ -121,6 +193,15 @@ class AchievementProvider extends ChangeNotifier {
     }
 
     if (category != null) {
+      // Sort subcategories to match expansion timeline order
+      if (category.subcategories.isNotEmpty) {
+        category = AchievementCategory(
+          id: category.id,
+          name: category.name,
+          subcategories: _sortRefs(category.subcategories, _subcategoryOrder),
+          achievementRefs: category.achievementRefs,
+        );
+      }
       _categoryDetails[categoryId] = category;
     }
 
@@ -186,10 +267,7 @@ class AchievementProvider extends ChangeNotifier {
       }
     }
 
-    // Sort completed by most recent first
-    completed.sort((a, b) =>
-        (b.completedTimestamp ?? 0).compareTo(a.completedTimestamp ?? 0));
-
+    // Preserve Blizzard's category order (matches in-game achievement panel)
     return MergedAchievements(completed: completed, incomplete: incomplete);
   }
 
@@ -202,6 +280,120 @@ class AchievementProvider extends ChangeNotifier {
 
   /// Refresh progress data (pull-to-refresh).
   Future<void> refreshProgress(String realmSlug, String characterName) async {
+    await loadProgress(realmSlug, characterName);
+  }
+
+  /// Returns completion counts for a category (completed / total).
+  /// Only works for categories whose achievements have been cached.
+  ({int completed, int total})? getCategoryCounts(int categoryId) {
+    final achievements = _categoryAchievements[categoryId];
+    if (achievements == null || achievements.isEmpty) return null;
+
+    int completed = 0;
+    for (final ach in achievements) {
+      final entry = _progress?.achievements[ach.id];
+      if (entry?.isCompleted ?? false) {
+        completed++;
+      }
+    }
+    return (completed: completed, total: achievements.length);
+  }
+
+  /// Searches cached achievement definitions by name.
+  List<AchievementSearchResult> searchAchievements(String query) {
+    if (query.length < 2) return [];
+    final lowerQuery = query.toLowerCase();
+    final results = <AchievementSearchResult>[];
+
+    for (final entry in _categoryAchievements.entries) {
+      final categoryId = entry.key;
+      final categoryDetail = _categoryDetails[categoryId];
+      final categoryName = categoryDetail?.name ?? 'Unknown';
+      final categoryPath = categoryName;
+
+      for (final ach in entry.value) {
+        if (ach.name.toLowerCase().contains(lowerQuery)) {
+          results.add(AchievementSearchResult(
+            achievement: ach,
+            categoryId: categoryId,
+            categoryPath: categoryPath,
+          ));
+        }
+      }
+    }
+    return results;
+  }
+
+  /// Returns the number of cached achievement definitions available for search.
+  int get searchableCacheSize {
+    int count = 0;
+    for (final achs in _categoryAchievements.values) {
+      count += achs.length;
+    }
+    return count;
+  }
+
+  /// Loads the most recently completed achievements.
+  Future<void> loadRecentlyCompleted() async {
+    if (_progress == null) return;
+    _isRecentLoading = true;
+    notifyListeners();
+
+    final entries = _progress!.achievements.values
+        .where((e) => e.isCompleted && e.completedTimestamp != null)
+        .toList()
+      ..sort((a, b) => (b.completedTimestamp ?? 0).compareTo(a.completedTimestamp ?? 0));
+
+    final topEntries = entries.take(5).toList();
+    final results = <AchievementDisplay>[];
+
+    for (final entry in topEntries) {
+      // Check if we have the definition cached already
+      Achievement? ach;
+      for (final achs in _categoryAchievements.values) {
+        for (final a in achs) {
+          if (a.id == entry.achievementId) {
+            ach = a;
+            break;
+          }
+        }
+        if (ach != null) break;
+      }
+
+      // Fetch from API if not cached
+      ach ??= await _apiService.getAchievement(entry.achievementId);
+
+      if (ach != null) {
+        results.add(AchievementDisplay(
+          achievement: ach,
+          isCompleted: true,
+          completedTimestamp: entry.completedTimestamp,
+          criteriaProgress: entry.criteriaProgress,
+        ));
+      }
+    }
+
+    _recentlyCompleted = results;
+    _isRecentLoading = false;
+    notifyListeners();
+  }
+
+  /// Force-refreshes a category by clearing its cache and reloading.
+  Future<void> forceRefreshCategory(int categoryId) async {
+    _categoryDetails.remove(categoryId);
+    _categoryAchievements.remove(categoryId);
+    // Clear cached data so it re-fetches from API
+    _cacheService.clearAchievementCategory(categoryId);
+    _cacheService.clearAchievements(categoryId);
+    await loadCategoryDetails(categoryId);
+  }
+
+  /// Force-refreshes categories and progress (for top-level screen).
+  Future<void> forceRefreshAll(String realmSlug, String characterName) async {
+    _topCategories = [];
+    _categoryDetails.clear();
+    _categoryAchievements.clear();
+    await loadCategories();
     await loadProgress(realmSlug, characterName);
   }
 }

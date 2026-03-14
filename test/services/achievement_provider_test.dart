@@ -78,23 +78,24 @@ void main() {
       expect(merged.incomplete.length, 1);
     });
 
-    test('completed sorted by most recent first', () {
+    test('completed preserves category order from API', () {
       final achievements = [
-        Achievement(id: 1, name: 'Old', description: '', points: 5),
-        Achievement(id: 2, name: 'New', description: '', points: 5),
+        Achievement(id: 1, name: 'First', description: '', points: 5),
+        Achievement(id: 2, name: 'Second', description: '', points: 5),
       ];
       final progress = AccountAchievementProgress(
         totalQuantity: 2,
         totalPoints: 10,
         achievements: {
-          1: AchievementProgressEntry(achievementId: 1, isCompleted: true, completedTimestamp: 1000),
-          2: AchievementProgressEntry(achievementId: 2, isCompleted: true, completedTimestamp: 2000),
+          1: AchievementProgressEntry(achievementId: 1, isCompleted: true, completedTimestamp: 2000),
+          2: AchievementProgressEntry(achievementId: 2, isCompleted: true, completedTimestamp: 1000),
         },
       );
 
       final merged = AchievementProvider.mergeWithProgress(achievements, progress);
-      expect(merged.completed.first.achievement.id, 2); // most recent first
-      expect(merged.completed.last.achievement.id, 1);
+      // Order matches input list, not timestamp
+      expect(merged.completed.first.achievement.id, 1);
+      expect(merged.completed.last.achievement.id, 2);
     });
 
     test('formattedDate returns correct format', () {
@@ -113,6 +114,51 @@ void main() {
         isCompleted: false,
       );
       expect(display.formattedDate, isNull);
+    });
+
+    test('nearCompletion filters achievements at 50%+ criteria done', () {
+      final achievements = [
+        Achievement(
+          id: 1, name: 'Almost', description: '', points: 10,
+          criteria: AchievementCriteria(id: 10, childCriteria: [
+            AchievementCriteria(id: 11, description: 'A'),
+            AchievementCriteria(id: 12, description: 'B'),
+            AchievementCriteria(id: 13, description: 'C'),
+            AchievementCriteria(id: 14, description: 'D'),
+          ]),
+        ),
+        Achievement(
+          id: 2, name: 'Far', description: '', points: 10,
+          criteria: AchievementCriteria(id: 20, childCriteria: [
+            AchievementCriteria(id: 21, description: 'A'),
+            AchievementCriteria(id: 22, description: 'B'),
+            AchievementCriteria(id: 23, description: 'C'),
+            AchievementCriteria(id: 24, description: 'D'),
+          ]),
+        ),
+      ];
+      final progress = AccountAchievementProgress(
+        totalQuantity: 0, totalPoints: 0,
+        achievements: {
+          1: AchievementProgressEntry(
+            achievementId: 1, isCompleted: false,
+            criteriaProgress: {10: false, 11: true, 12: true, 13: true, 14: false},
+          ),
+          2: AchievementProgressEntry(
+            achievementId: 2, isCompleted: false,
+            criteriaProgress: {20: false, 21: true, 22: false, 23: false, 24: false},
+          ),
+        },
+      );
+
+      final merged = AchievementProvider.mergeWithProgress(achievements, progress);
+      expect(merged.incomplete.length, 2);
+
+      final nearCompletion = merged.incomplete
+          .where((d) => d.totalCriteria > 0 && d.completedCriteria / d.totalCriteria >= 0.5)
+          .toList();
+      expect(nearCompletion.length, 1);
+      expect(nearCompletion.first.achievement.name, 'Almost');
     });
   });
 }

@@ -114,6 +114,7 @@ class Achievement {
   final AchievementCriteria? criteria;
   final String? iconUrl;
   final String? mediaHref;
+  final int? categoryId;
 
   const Achievement({
     required this.id,
@@ -124,9 +125,10 @@ class Achievement {
     this.criteria,
     this.iconUrl,
     this.mediaHref,
+    this.categoryId,
   });
 
-  Achievement copyWith({String? iconUrl}) => Achievement(
+  Achievement copyWith({String? iconUrl, int? categoryId}) => Achievement(
         id: id,
         name: name,
         description: description,
@@ -135,6 +137,7 @@ class Achievement {
         criteria: criteria,
         iconUrl: iconUrl ?? this.iconUrl,
         mediaHref: mediaHref,
+        categoryId: categoryId ?? this.categoryId,
       );
 
   factory Achievement.fromJson(Map<String, dynamic> json) {
@@ -148,6 +151,7 @@ class Achievement {
       criteria: criteriaJson != null ? AchievementCriteria.fromJson(criteriaJson) : null,
       iconUrl: json['icon_url'] as String?,
       mediaHref: json['media']?['key']?['href'] as String?,
+      categoryId: json['_category_id'] as int?,
     );
   }
 
@@ -160,6 +164,7 @@ class Achievement {
         if (criteria != null) 'criteria': criteria!.toJson(),
         if (iconUrl != null) 'icon_url': iconUrl,
         if (mediaHref != null) 'media': {'key': {'href': mediaHref}},
+        if (categoryId != null) '_category_id': categoryId,
       };
 }
 
