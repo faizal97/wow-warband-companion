@@ -1,5 +1,5 @@
-name: wow_companion
-description: A mobile World of Warcraft companion app
+name: wow_warband_companion
+description: WoW Warband Companion - View your World of Warcraft characters, gear, Mythic+ scores, and raid progression
 publish_to: 'none'
 version: 1.0.0+1
 

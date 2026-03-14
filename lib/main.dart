@@ -108,7 +108,7 @@ class _WowCompanionAppState extends State<WowCompanionApp> {
     }
 
     return MaterialApp(
-      title: 'WoW Companion',
+      title: 'WoW Warband Companion',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme(),
       navigatorKey: _navigatorKey,

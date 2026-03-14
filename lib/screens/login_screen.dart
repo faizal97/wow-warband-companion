@@ -61,7 +61,7 @@ class LoginScreen extends StatelessWidget {
 
                   // Title
                   Text(
-                    'WOW COMPANION',
+                    'WOW WARBAND',
                     style: GoogleFonts.rajdhani(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,

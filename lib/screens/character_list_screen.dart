@@ -227,7 +227,7 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'WOW COMPANION',
+                'WOW WARBAND',
                 style: GoogleFonts.rajdhani(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

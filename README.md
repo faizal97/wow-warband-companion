@@ -1,6 +1,6 @@
-# WoW Companion
+# WoW Warband Companion
 
-A mobile World of Warcraft companion app. View your characters, gear, Mythic+ scores, and raid progression — all pulled from the official Battle.net API.
+View your World of Warcraft characters, gear, Mythic+ scores, and raid progression — all pulled from the official Battle.net API.
 
 <p align="center">
   <img src="assets/screenshots/wow-companion-1.png" width="280" alt="Character List" />
@@ -20,9 +20,9 @@ A mobile World of Warcraft companion app. View your characters, gear, Mythic+ sc
 
 ## Try It
 
-**Web App** — [faizal97.github.io/mobile-wow-companion](https://faizal97.github.io/mobile-wow-companion/)
+**Web App** — [faizal97.github.io/wow-warband-companion](https://faizal97.github.io/wow-warband-companion/)
 
-**Android** — [Download APK](https://github.com/faizal97/mobile-wow-companion/releases/latest)
+**Android** — [Download APK](https://github.com/faizal97/wow-warband-companion/releases/latest)
 
 > On Android, you may need to enable "Install from unknown sources" in Settings.
 
@@ -31,8 +31,8 @@ A mobile World of Warcraft companion app. View your characters, gear, Mythic+ sc
 Requires Flutter 3.2+ and a [Battle.net Developer](https://develop.battle.net/) application.
 
 ```bash
-git clone https://github.com/faizal97/mobile-wow-companion.git
-cd mobile-wow-companion
+git clone https://github.com/faizal97/wow-warband-companion.git
+cd wow-warband-companion
 ```
 
 Create a `.env` file with your credentials, then run:

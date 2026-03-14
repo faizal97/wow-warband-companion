@@ -59,8 +59,8 @@ echo ""
 echo "==> Building Web..."
 flutter build web --release \
   $DART_DEFINES \
-  --dart-define=BNET_REDIRECT_URI=https://faizal97.github.io/mobile-wow-companion/auth/callback \
-  --base-href="/mobile-wow-companion/"
+  --dart-define=BNET_REDIRECT_URI=https://faizal97.github.io/wow-warband-companion/auth/callback \
+  --base-href="/wow-warband-companion/"
 echo "    Web built"
 
 # 3. Commit and push main (if there are changes)
@@ -76,13 +76,13 @@ fi
 echo ""
 echo "==> Creating GitHub Release v${VERSION}..."
 gh release create "v${VERSION}" \
-  "${APK_PATH}#wow-companion-v${VERSION}.apk" \
+  "${APK_PATH}#wow-warband-companion-v${VERSION}.apk" \
   --title "v${VERSION}" \
-  --notes "## WoW Companion v${VERSION}
+  --notes "## WoW Warband Companion v${VERSION}
 
 ### Download
 - **Android**: Download the APK below
-- **Web**: [faizal97.github.io/mobile-wow-companion](https://faizal97.github.io/mobile-wow-companion/)
+- **Web**: [faizal97.github.io/wow-warband-companion](https://faizal97.github.io/wow-warband-companion/)
 "
 
 # 5. Deploy Web to gh-pages
@@ -112,5 +112,5 @@ rm -rf /tmp/wow-web-deploy-${VERSION}
 
 echo ""
 echo "==> Done! v${VERSION} released"
-echo "    APK: https://github.com/faizal97/mobile-wow-companion/releases/tag/v${VERSION}"
-echo "    Web: https://faizal97.github.io/mobile-wow-companion/"
+echo "    APK: https://github.com/faizal97/wow-warband-companion/releases/tag/v${VERSION}"
+echo "    Web: https://faizal97.github.io/wow-warband-companion/"
