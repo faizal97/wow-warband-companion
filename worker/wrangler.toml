@@ -1,0 +1,6 @@
+name = "wow-companion-auth"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# Set these as secrets via: wrangler secret put BNET_CLIENT_ID
+# and: wrangler secret put BNET_CLIENT_SECRET

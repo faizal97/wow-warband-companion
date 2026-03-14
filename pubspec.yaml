@@ -1,0 +1,31 @@
+name: wow_companion
+description: A mobile World of Warcraft companion app
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  http: ^1.2.0
+  url_launcher: ^6.2.2
+  provider: ^6.1.1
+  shimmer: ^3.0.0
+  flutter_cache_manager: ^3.4.1
+  shared_preferences: ^2.5.4
+  app_links: ^7.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/

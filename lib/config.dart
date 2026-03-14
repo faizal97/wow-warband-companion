@@ -1,0 +1,21 @@
+/// App configuration loaded from environment variables.
+///
+/// Pass these at build time via --dart-define:
+///   flutter run --dart-define=BNET_CLIENT_ID=xxx --dart-define=AUTH_PROXY_URL=xxx
+class AppConfig {
+  AppConfig._();
+
+  /// Battle.net client ID (public — safe to include in builds).
+  static const String battleNetClientId =
+      String.fromEnvironment('BNET_CLIENT_ID');
+
+  /// URL of the Cloudflare Worker auth proxy that exchanges codes for tokens.
+  static const String authProxyUrl =
+      String.fromEnvironment('AUTH_PROXY_URL');
+
+  /// OAuth redirect URI.
+  static const String redirectUri = String.fromEnvironment(
+    'BNET_REDIRECT_URI',
+    defaultValue: 'http://localhost:8080/auth/callback',
+  );
+}

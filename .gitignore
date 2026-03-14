@@ -1,0 +1,42 @@
+# Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Pub
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Platform builds
+android/.gradle/
+android/local.properties
+android/key.properties
+android/*.keystore
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Plans & docs
+docs/plans/
+
+# Node (worker)
+node_modules/
+
+# Secrets
+.env
+*.env.local
+*.jks
+*.p12
+*.key
