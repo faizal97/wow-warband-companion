@@ -22,15 +22,19 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool forceRefresh = false}) async {
     final achProvider = context.read<AchievementProvider>();
     final charProvider = context.read<CharacterProvider>();
 
-    await achProvider.loadCategories();
-
-    if (charProvider.hasCharacters) {
+    if (forceRefresh && charProvider.hasCharacters) {
       final char = charProvider.characters.first;
-      await achProvider.loadProgress(char.realmSlug, char.name);
+      await achProvider.forceRefreshAll(char.realmSlug, char.name);
+    } else {
+      await achProvider.loadCategories();
+      if (charProvider.hasCharacters) {
+        final char = charProvider.characters.first;
+        await achProvider.loadProgress(char.realmSlug, char.name);
+      }
     }
   }
 
@@ -54,7 +58,7 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
           child: Consumer<AchievementProvider>(
             builder: (context, provider, _) {
               return RefreshIndicator(
-                onRefresh: _loadData,
+                onRefresh: () => _loadData(forceRefresh: true),
                 color: const Color(0xFF3FC7EB),
                 backgroundColor: AppTheme.surface,
                 child: CustomScrollView(
@@ -90,6 +94,7 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
                             final cat = provider.topCategories[index];
                             return _CategoryTile(
                               category: cat,
+                              counts: provider.getCategoryCounts(cat.id),
                               onTap: () => _openCategory(cat),
                             );
                           },
@@ -266,9 +271,10 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
 
 class _CategoryTile extends StatelessWidget {
   final AchievementCategoryRef category;
+  final ({int completed, int total})? counts;
   final VoidCallback onTap;
 
-  const _CategoryTile({required this.category, required this.onTap});
+  const _CategoryTile({required this.category, this.counts, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +300,17 @@ class _CategoryTile extends StatelessWidget {
                 ),
               ),
             ),
+            if (counts != null) ...[
+              Text(
+                '${counts!.completed}/${counts!.total}',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFFFD100),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
             const Icon(
               Icons.chevron_right_rounded,
               color: AppTheme.textTertiary,
