@@ -44,6 +44,12 @@ fi
 
 DART_DEFINES="--dart-define=BNET_CLIENT_ID=${BNET_CLIENT_ID} --dart-define=AUTH_PROXY_URL=${AUTH_PROXY_URL}"
 
+# 0. Clean build
+echo ""
+echo "==> Cleaning build..."
+flutter clean > /dev/null 2>&1
+flutter pub get > /dev/null 2>&1
+
 # 1. Build Android APK
 echo ""
 echo "==> Building Android APK..."
