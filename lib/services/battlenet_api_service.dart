@@ -544,7 +544,11 @@ class BattleNetApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final categories = data['categories'] as List? ?? [];
+        // Prefer root_categories (top-level only), fall back to categories
+        final categories =
+            data['root_categories'] as List? ??
+            data['categories'] as List? ??
+            [];
         return categories
             .map((e) => AchievementCategoryRef.fromJson(e as Map<String, dynamic>))
             .toList();

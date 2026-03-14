@@ -291,6 +291,32 @@ class AchievementProvider extends ChangeNotifier {
     await loadProgress(realmSlug, characterName);
   }
 
+  /// Fetches a single achievement by ID. Checks cache first.
+  Future<Achievement?> fetchAchievement(int achievementId) async {
+    // Check if we already have it cached
+    for (final achs in _categoryAchievements.values) {
+      for (final a in achs) {
+        if (a.id == achievementId) return a;
+      }
+    }
+    // Fetch from API
+    return _apiService.getAchievement(achievementId);
+  }
+
+  /// Finds the category ID and name for a cached achievement.
+  /// Returns null if the achievement isn't in any cached category.
+  ({int categoryId, String categoryName})? findAchievementCategory(int achievementId) {
+    for (final entry in _categoryAchievements.entries) {
+      for (final ach in entry.value) {
+        if (ach.id == achievementId) {
+          final detail = _categoryDetails[entry.key];
+          return (categoryId: entry.key, categoryName: detail?.name ?? 'Unknown');
+        }
+      }
+    }
+    return null;
+  }
+
   /// Returns completion counts for a category (completed / total).
   /// Only works for categories whose achievements have been cached.
   ({int completed, int total})? getCategoryCounts(int categoryId) {
@@ -387,20 +413,35 @@ class AchievementProvider extends ChangeNotifier {
   }
 
   /// Force-refreshes a category by clearing its cache and reloading.
+  /// Force-refreshes a category by clearing its persistent cache and reloading.
+  /// If the reload fails, in-memory data is re-persisted so offline mode
+  /// still works on next app launch.
   Future<void> forceRefreshCategory(int categoryId) async {
-    _categoryDetails.remove(categoryId);
-    _categoryAchievements.remove(categoryId);
-    // Clear cached data so it re-fetches from API
+    // Snapshot existing in-memory data before clearing caches
+    final oldDetails = _categoryDetails[categoryId];
+    final oldAchievements = _categoryAchievements[categoryId];
+
+    // Clear persistent cache — forces loadCategoryDetails to hit the API
     _cacheService.clearAchievementCategory(categoryId);
     _cacheService.clearAchievements(categoryId);
+
     await loadCategoryDetails(categoryId);
+
+    // If the reload didn't produce new data (network failure), re-persist
+    // the old in-memory data so it survives the next app launch
+    if (_categoryDetails[categoryId] == oldDetails && oldDetails != null) {
+      _cacheService.cacheAchievementCategory(oldDetails);
+    }
+    if (_categoryAchievements[categoryId] == oldAchievements && oldAchievements != null) {
+      _cacheService.cacheAchievements(categoryId, oldAchievements);
+    }
   }
 
   /// Force-refreshes categories and progress (for top-level screen).
+  /// Existing in-memory data is preserved if network calls fail.
   Future<void> forceRefreshAll(String realmSlug, String characterName) async {
-    _topCategories = [];
-    _categoryDetails.clear();
-    _categoryAchievements.clear();
+    // Don't clear in-memory data — loadCategories and loadProgress will
+    // overwrite on success and keep existing data on failure.
     await loadCategories();
     await loadProgress(realmSlug, characterName);
   }

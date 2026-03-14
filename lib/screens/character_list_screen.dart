@@ -232,6 +232,15 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
         children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(
+              Icons.arrow_back_rounded,
+              color: AppTheme.textSecondary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

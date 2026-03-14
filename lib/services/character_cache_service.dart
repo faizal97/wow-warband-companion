@@ -220,6 +220,16 @@ class CharacterCacheService {
     _prefs.setString('$_achDefsPrefix$categoryId', jsonEncode(json));
   }
 
+  /// Removes cached achievement category data.
+  void clearAchievementCategory(int categoryId) {
+    _prefs.remove('$_achCatPrefix$categoryId');
+  }
+
+  /// Removes cached achievement definitions for a category.
+  void clearAchievements(int categoryId) {
+    _prefs.remove('$_achDefsPrefix$categoryId');
+  }
+
   /// Removes all cached data.
   void clearAll() {
     final keys = _prefs.getKeys().where((key) =>

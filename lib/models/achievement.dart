@@ -75,24 +75,33 @@ class AchievementCriteria {
   final String description;
   final int? amount;
   final List<AchievementCriteria> childCriteria;
+  final int? linkedAchievementId;
+  final String? linkedAchievementName;
 
   const AchievementCriteria({
     required this.id,
     this.description = '',
     this.amount,
     this.childCriteria = const [],
+    this.linkedAchievementId,
+    this.linkedAchievementName,
   });
+
+  bool get isMetaCriterion => linkedAchievementId != null;
 
   factory AchievementCriteria.fromJson(Map<String, dynamic> json) {
     final children = (json['child_criteria'] as List?)
             ?.map((e) => AchievementCriteria.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
+    final linkedAch = json['achievement'] as Map<String, dynamic>?;
     return AchievementCriteria(
       id: json['id'] as int,
       description: json['description'] as String? ?? '',
       amount: json['amount'] as int?,
       childCriteria: children,
+      linkedAchievementId: linkedAch?['id'] as int?,
+      linkedAchievementName: linkedAch?['name'] as String?,
     );
   }
 
@@ -102,6 +111,11 @@ class AchievementCriteria {
         if (amount != null) 'amount': amount,
         if (childCriteria.isNotEmpty)
           'child_criteria': childCriteria.map((c) => c.toJson()).toList(),
+        if (linkedAchievementId != null)
+          'achievement': {
+            'id': linkedAchievementId,
+            if (linkedAchievementName != null) 'name': linkedAchievementName,
+          },
       };
 }
 

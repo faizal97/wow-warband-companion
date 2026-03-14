@@ -12,12 +12,14 @@ enum AchievementFilter { all, inProgress, done }
 class AchievementListScreen extends StatefulWidget {
   final int categoryId;
   final String categoryName;
+  final String? parentCategoryName;
   final int? highlightAchievementId;
 
   const AchievementListScreen({
     super.key,
     required this.categoryId,
     required this.categoryName,
+    this.parentCategoryName,
     this.highlightAchievementId,
   });
 
@@ -35,11 +37,6 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
     _highlightAchievementId = widget.highlightAchievementId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AchievementProvider>().loadCategoryDetails(widget.categoryId);
-      if (_highlightAchievementId != null) {
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) setState(() => _highlightAchievementId = null);
-        });
-      }
     });
   }
 
@@ -144,6 +141,9 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
                                 builder: (_) => AchievementListScreen(
                                   categoryId: sub.id,
                                   categoryName: sub.name,
+                                  parentCategoryName: widget.parentCategoryName != null
+                                      ? '${widget.parentCategoryName} > ${widget.categoryName}'
+                                      : widget.categoryName,
                                 ),
                               ),
                             ),
@@ -250,15 +250,30 @@ class _AchievementListScreenState extends State<AchievementListScreen> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
-              widget.categoryName,
-              style: GoogleFonts.rajdhani(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
-                height: 1.0,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (widget.parentCategoryName != null)
+                  Text(
+                    widget.parentCategoryName!,
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textTertiary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                Text(
+                  widget.categoryName,
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                    height: 1.0,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ],
@@ -723,12 +738,18 @@ class _HighlightedAchievementCard extends StatelessWidget {
 
 class _AchievementDetailSheet extends StatelessWidget {
   final AchievementDisplay display;
+  final AchievementDisplay? parentDisplay;
 
-  const _AchievementDetailSheet({required this.display});
+  const _AchievementDetailSheet({
+    required this.display,
+    this.parentDisplay,
+  });
 
   @override
   Widget build(BuildContext context) {
     final ach = display.achievement;
+    final provider = context.read<AchievementProvider>();
+    final categoryInfo = provider.findAchievementCategory(ach.id);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.5,
@@ -743,6 +764,7 @@ class _AchievementDetailSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Drag handle
                 Center(
                   child: Container(
                     width: 36,
@@ -753,8 +775,69 @@ class _AchievementDetailSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
 
+                // Back to parent + View in category
+                Row(
+                  children: [
+                    if (parentDisplay != null)
+                      GestureDetector(
+                        onTap: () => _goBackToParent(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.surfaceBorder, width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.arrow_back_rounded, color: AppTheme.textSecondary, size: 14),
+                              const SizedBox(width: 6),
+                              Text(
+                                parentDisplay!.achievement.name,
+                                style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    if (categoryInfo != null)
+                      GestureDetector(
+                        onTap: () => _viewInCategory(context, categoryInfo.categoryId, categoryInfo.categoryName),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3FC7EB).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF3FC7EB).withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View in category',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF3FC7EB),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.arrow_forward_rounded, color: Color(0xFF3FC7EB), size: 14),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Achievement header
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -809,17 +892,33 @@ class _AchievementDetailSheet extends StatelessWidget {
 
                 if (ach.criteria != null) ...[
                   const SizedBox(height: 20),
-                  Text(
-                    'CRITERIA',
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textTertiary,
-                      letterSpacing: 1.5,
-                    ),
+                  // Criteria header with progress count
+                  Row(
+                    children: [
+                      Text(
+                        'CRITERIA',
+                        style: GoogleFonts.rajdhani(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textTertiary,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      if (display.totalCriteria > 0) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '${display.completedCriteria}/${display.totalCriteria}',
+                          style: GoogleFonts.rajdhani(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFFFD100),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _buildCriteriaTree(ach.criteria!, display.criteriaProgress, 0),
+                  const SizedBox(height: 10),
+                  _buildCriteriaTree(context, ach.criteria!, display.criteriaProgress, 0),
                 ],
               ],
             ),
@@ -829,12 +928,20 @@ class _AchievementDetailSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildCriteriaTree(
+  Widget _buildCriteriaTree(BuildContext context,
       AchievementCriteria criteria, Map<int, bool> progress, int depth) {
     final children = criteria.childCriteria;
 
     if (children.isEmpty) {
       final isCompleted = progress[criteria.id] ?? false;
+      if (criteria.isMetaCriterion) {
+        return _MetaCriterionCard(
+          description: criteria.linkedAchievementName ?? criteria.description,
+          isCompleted: isCompleted,
+          depth: depth,
+          onTap: () => _openLinkedAchievement(context, criteria.linkedAchievementId!),
+        );
+      }
       return _CriterionRow(
         description: criteria.description.isNotEmpty
             ? criteria.description
@@ -847,9 +954,16 @@ class _AchievementDetailSheet extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (criteria.description.isNotEmpty)
+        if (criteria.isMetaCriterion) ...[
+          _MetaCriterionCard(
+            description: criteria.linkedAchievementName ?? criteria.description,
+            isCompleted: progress[criteria.id] ?? false,
+            depth: depth,
+            onTap: () => _openLinkedAchievement(context, criteria.linkedAchievementId!),
+          ),
+        ] else if (criteria.description.isNotEmpty) ...[
           Padding(
-            padding: EdgeInsets.only(left: depth * 16.0, bottom: 4),
+            padding: EdgeInsets.only(left: depth * 12.0, bottom: 4, top: depth > 0 ? 8 : 0),
             child: Text(
               criteria.description,
               style: GoogleFonts.inter(
@@ -859,14 +973,89 @@ class _AchievementDetailSheet extends StatelessWidget {
               ),
             ),
           ),
+        ],
         for (final child in children)
-          _buildCriteriaTree(child, progress,
+          _buildCriteriaTree(context, child, progress,
               depth + (criteria.description.isNotEmpty ? 1 : 0)),
       ],
     );
   }
+
+  void _openLinkedAchievement(BuildContext context, int achievementId) async {
+    final provider = context.read<AchievementProvider>();
+    final progress = provider.progress;
+
+    final ach = await provider.fetchAchievement(achievementId);
+    if (ach == null) return;
+
+    final entry = progress?.achievements[achievementId];
+    final isCompleted = entry?.isCompleted ?? false;
+
+    int completedCriteria = 0;
+    int totalCriteria = 0;
+    if (ach.criteria != null && ach.criteria!.childCriteria.isNotEmpty) {
+      totalCriteria = ach.criteria!.childCriteria.length;
+      for (final child in ach.criteria!.childCriteria) {
+        if (entry?.criteriaProgress[child.id] == true) {
+          completedCriteria++;
+        }
+      }
+    }
+
+    final linkedDisplay = AchievementDisplay(
+      achievement: ach,
+      isCompleted: isCompleted,
+      completedTimestamp: entry?.completedTimestamp,
+      criteriaProgress: entry?.criteriaProgress ?? {},
+      completedCriteria: completedCriteria,
+      totalCriteria: totalCriteria,
+    );
+
+    if (!context.mounted) return;
+
+    Navigator.pop(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceElevated,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AchievementDetailSheet(
+        display: linkedDisplay,
+        parentDisplay: display,
+      ),
+    );
+  }
+
+  void _goBackToParent(BuildContext context) {
+    Navigator.pop(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceElevated,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AchievementDetailSheet(display: parentDisplay!),
+    );
+  }
+
+  void _viewInCategory(BuildContext context, int categoryId, String categoryName) {
+    Navigator.pop(context); // close the sheet
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AchievementListScreen(
+          categoryId: categoryId,
+          categoryName: categoryName,
+          highlightAchievementId: display.achievement.id,
+        ),
+      ),
+    );
+  }
 }
 
+/// Regular criterion row — touch-friendly with 44px min height.
 class _CriterionRow extends StatelessWidget {
   final String description;
   final bool isCompleted;
@@ -881,28 +1070,155 @@ class _CriterionRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: depth * 16.0, top: 2, bottom: 2),
-      child: Row(
-        children: [
-          Icon(
-            isCompleted
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            color: isCompleted ? const Color(0xFF1EFF00) : AppTheme.textTertiary,
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              description,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                color: isCompleted ? AppTheme.textSecondary : AppTheme.textPrimary,
-                decoration: isCompleted ? TextDecoration.lineThrough : null,
+      padding: EdgeInsets.only(left: depth * 12.0),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+        margin: const EdgeInsets.only(bottom: 4),
+        decoration: BoxDecoration(
+          color: isCompleted
+              ? const Color(0xFF1EFF00).withValues(alpha: 0.04)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isCompleted
+                    ? const Color(0xFF1EFF00).withValues(alpha: 0.15)
+                    : AppTheme.surfaceBorder.withValues(alpha: 0.5),
+              ),
+              child: Icon(
+                isCompleted
+                    ? Icons.check_rounded
+                    : Icons.remove_rounded,
+                color: isCompleted
+                    ? const Color(0xFF1EFF00)
+                    : AppTheme.textTertiary,
+                size: 14,
               ),
             ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                description,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: isCompleted
+                      ? AppTheme.textSecondary
+                      : AppTheme.textPrimary,
+                  decoration: isCompleted ? TextDecoration.lineThrough : null,
+                  decorationColor: AppTheme.textTertiary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Meta-criterion card — tappable card that links to another achievement.
+/// Always tappable, even when completed.
+class _MetaCriterionCard extends StatelessWidget {
+  final String description;
+  final bool isCompleted;
+  final int depth;
+  final VoidCallback onTap;
+
+  const _MetaCriterionCard({
+    required this.description,
+    required this.isCompleted,
+    required this.depth,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: depth * 12.0),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          margin: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            color: isCompleted
+                ? const Color(0xFF1EFF00).withValues(alpha: 0.04)
+                : const Color(0xFF3FC7EB).withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCompleted
+                  ? const Color(0xFF1EFF00).withValues(alpha: 0.15)
+                  : const Color(0xFF3FC7EB).withValues(alpha: 0.2),
+              width: 1,
+            ),
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isCompleted
+                      ? const Color(0xFF1EFF00).withValues(alpha: 0.15)
+                      : const Color(0xFF3FC7EB).withValues(alpha: 0.12),
+                ),
+                child: Icon(
+                  isCompleted
+                      ? Icons.check_rounded
+                      : Icons.emoji_events_outlined,
+                  color: isCompleted
+                      ? const Color(0xFF1EFF00)
+                      : const Color(0xFF3FC7EB),
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      description,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: isCompleted
+                            ? AppTheme.textSecondary
+                            : const Color(0xFF3FC7EB),
+                      ),
+                    ),
+                    Text(
+                      'Tap to view achievement',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: isCompleted
+                            ? AppTheme.textTertiary
+                            : const Color(0xFF3FC7EB).withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: isCompleted
+                    ? AppTheme.textTertiary
+                    : const Color(0xFF3FC7EB),
+                size: 14,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
