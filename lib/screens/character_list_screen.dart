@@ -7,6 +7,7 @@ import '../models/character.dart';
 import '../services/character_provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/wow_class_colors.dart';
+import '../widgets/update_dialog.dart';
 import 'character_dashboard_screen.dart';
 
 enum GroupBy { realm, characterClass, race, faction }
@@ -26,6 +27,14 @@ class _CharacterListScreenState extends State<CharacterListScreen> {
   SortBy _sortBy = SortBy.none;
   final _searchController = TextEditingController();
   bool _showSearch = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateDialog.checkAndShow(context);
+    });
+  }
 
   @override
   void dispose() {
