@@ -18,17 +18,13 @@ A mobile World of Warcraft companion app. View your characters, gear, Mythic+ sc
 - **Raid Progression** — Current expansion raids with boss-by-boss kill tracking and portraits
 - **Fast** — Cached data, parallel loading, images load progressively
 
-Available on **Android** (APK) and **Web**.
+## Try It
 
-## Download
+**Web App** — [faizal97.github.io/mobile-wow-companion](https://faizal97.github.io/mobile-wow-companion/)
 
-[**Download APK (Android)**](https://github.com/faizal97/mobile-wow-companion/releases/latest/download/wow-companion-v0.1.0.apk)
+**Android** — [Download APK](https://github.com/faizal97/mobile-wow-companion/releases/latest)
 
 > On Android, you may need to enable "Install from unknown sources" in Settings.
-
-1. Download and install the APK
-2. Open the app and sign in with your Battle.net account
-3. Browse your characters
 
 ## Building from Source
 
@@ -37,7 +33,6 @@ Requires Flutter 3.2+ and a [Battle.net Developer](https://develop.battle.net/) 
 ```bash
 git clone https://github.com/faizal97/mobile-wow-companion.git
 cd mobile-wow-companion
-cp lib/config.dart.example lib/config.dart
 ```
 
 Create a `.env` file with your credentials, then run:
