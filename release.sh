@@ -98,6 +98,7 @@ find . -maxdepth 1 ! -name '.git' ! -name '.' -exec rm -rf {} +
 # Copy new web build
 cp -r /tmp/wow-web-deploy-${VERSION}/* .
 touch .nojekyll
+cp index.html 404.html  # SPA routing for OAuth callback
 
 git add -A
 git commit -m "Deploy v${VERSION} to GitHub Pages"
