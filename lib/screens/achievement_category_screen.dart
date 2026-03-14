@@ -177,7 +177,6 @@ class _AchievementCategoryScreenState extends State<AchievementCategoryScreen> {
               ],
             ),
           ),
-          const Spacer(),
           IconButton(
             onPressed: () {
               setState(() {
