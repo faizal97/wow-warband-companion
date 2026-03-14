@@ -1,14 +1,35 @@
 #!/bin/bash
 set -e
 
-# Usage: ./release.sh 0.2.0
+# Usage: ./release.sh [major|minor|patch]
 
-VERSION=$1
-if [ -z "$VERSION" ]; then
-  echo "Usage: ./release.sh <version>"
-  echo "Example: ./release.sh 0.2.0"
+BUMP=$1
+if [ -z "$BUMP" ] || [[ ! "$BUMP" =~ ^(major|minor|patch)$ ]]; then
+  echo "Usage: ./release.sh [major|minor|patch]"
+  echo ""
+  echo "Examples:"
+  echo "  ./release.sh patch   # 0.1.0 -> 0.1.1"
+  echo "  ./release.sh minor   # 0.1.0 -> 0.2.0"
+  echo "  ./release.sh major   # 0.1.0 -> 1.0.0"
   exit 1
 fi
+
+# Get latest version from git tags
+LATEST=$(git tag --sort=-v:refname | head -1 | sed 's/^v//')
+if [ -z "$LATEST" ]; then
+  LATEST="0.0.0"
+fi
+
+IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST"
+
+case $BUMP in
+  major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+  minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+  patch) PATCH=$((PATCH + 1)) ;;
+esac
+
+VERSION="${MAJOR}.${MINOR}.${PATCH}"
+echo "==> Bumping ${LATEST} -> ${VERSION} (${BUMP})"
 
 # Load secrets from .env
 if [ -f .env ]; then
@@ -21,8 +42,6 @@ if [ -z "$BNET_CLIENT_ID" ] || [ -z "$AUTH_PROXY_URL" ]; then
 fi
 
 DART_DEFINES="--dart-define=BNET_CLIENT_ID=${BNET_CLIENT_ID} --dart-define=AUTH_PROXY_URL=${AUTH_PROXY_URL}"
-
-echo "==> Releasing v${VERSION}"
 
 # 1. Build Android APK
 echo ""
