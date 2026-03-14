@@ -83,10 +83,20 @@ fi
 echo ""
 echo "==> Generating changelog..."
 PREV_TAG="v${LATEST}"
-if git rev-parse "$PREV_TAG" > /dev/null 2>&1; then
-  CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H)) — %an" --no-merges)
-else
-  CHANGELOG=$(git log --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H)) — %an" --no-merges)
+
+# Try GitHub's auto-generated release notes first (includes @mentions)
+CHANGELOG=$(gh api repos/faizal97/wow-warband-companion/releases/generate-notes \
+  -f tag_name="v${VERSION}" \
+  -f previous_tag_name="${PREV_TAG}" \
+  --jq '.body' 2>/dev/null || echo "")
+
+# Fallback to git log if GitHub API fails
+if [ -z "$CHANGELOG" ]; then
+  if git rev-parse "$PREV_TAG" > /dev/null 2>&1; then
+    CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H))" --no-merges)
+  else
+    CHANGELOG=$(git log --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H))" --no-merges)
+  fi
 fi
 
 if [ -z "$CHANGELOG" ]; then
