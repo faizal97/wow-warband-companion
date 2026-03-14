@@ -79,18 +79,37 @@ if [ -n "$(git status --porcelain)" ]; then
   git push
 fi
 
-# 4. Create GitHub Release with APK
+# 4. Generate changelog from commits since last tag
+echo ""
+echo "==> Generating changelog..."
+PREV_TAG="v${LATEST}"
+if git rev-parse "$PREV_TAG" > /dev/null 2>&1; then
+  CHANGELOG=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H)) — %an" --no-merges)
+else
+  CHANGELOG=$(git log --pretty=format:"- %s ([%h](https://github.com/faizal97/wow-warband-companion/commit/%H)) — %an" --no-merges)
+fi
+
+if [ -z "$CHANGELOG" ]; then
+  CHANGELOG="- No changes since last release"
+fi
+
+# 5. Create GitHub Release with APK
 echo ""
 echo "==> Creating GitHub Release v${VERSION}..."
 gh release create "v${VERSION}" \
   "${APK_PATH}#wow-warband-companion-v${VERSION}.apk" \
   --title "v${VERSION}" \
-  --notes "## WoW Warband Companion v${VERSION}
+  --notes "$(cat <<NOTES
+## WoW Warband Companion v${VERSION}
+
+### What's Changed
+${CHANGELOG}
 
 ### Download
 - **Android**: Download the APK below
 - **Web**: [faizal97.github.io/wow-warband-companion](https://faizal97.github.io/wow-warband-companion/)
-"
+NOTES
+)"
 
 # 5. Deploy Web to gh-pages
 echo ""
