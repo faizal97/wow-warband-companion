@@ -20,12 +20,15 @@ A mobile World of Warcraft companion app. View your characters, gear, Mythic+ sc
 
 Available on **Android** (APK) and **Web**.
 
-## Getting Started
+## Download
 
-1. Download the latest APK from [Releases](https://github.com/faizal97/mobile-wow-companion/releases)
-2. Install and open the app
-3. Sign in with your Battle.net account
-4. Browse your characters
+[**Download APK (Android)**](https://github.com/faizal97/mobile-wow-companion/releases/latest/download/wow-companion-v0.1.0.apk)
+
+> On Android, you may need to enable "Install from unknown sources" in Settings.
+
+1. Download and install the APK
+2. Open the app and sign in with your Battle.net account
+3. Browse your characters
 
 ## Building from Source
 
