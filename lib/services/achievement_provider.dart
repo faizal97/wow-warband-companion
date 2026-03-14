@@ -152,9 +152,15 @@ class AchievementProvider extends ChangeNotifier {
 
     try {
       final categories = await _apiService.getAchievementCategoriesIndex();
-      _topCategories = _sortRefs(categories, _categoryOrder);
+      if (categories.isNotEmpty) {
+        _topCategories = _sortRefs(categories, _categoryOrder);
+      } else if (_topCategories.isEmpty) {
+        _error = 'Failed to load categories';
+      }
     } catch (e) {
-      _error = 'Failed to load categories';
+      if (_topCategories.isEmpty) {
+        _error = 'No connection — check your network';
+      }
     }
 
     _isCategoriesLoading = false;
@@ -167,10 +173,13 @@ class AchievementProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _progress =
+      final newProgress =
           await _apiService.getCharacterAchievements(realmSlug, characterName);
+      if (newProgress != null) {
+        _progress = newProgress;
+      }
     } catch (_) {
-      // Progress is optional — the UI still works without it
+      // Keep existing progress — offline mode
     }
 
     _isProgressLoading = false;
@@ -183,43 +192,42 @@ class AchievementProvider extends ChangeNotifier {
     _categoryLoading[categoryId] = true;
     notifyListeners();
 
-    // Check cache for category details
-    var category = _cacheService.getCachedAchievementCategory(categoryId);
-    if (category == null) {
-      category = await _apiService.getAchievementCategory(categoryId);
-      if (category != null) {
-        _cacheService.cacheAchievementCategory(category);
-      }
-    }
-
-    if (category != null) {
-      // Sort subcategories to match expansion timeline order
-      if (category.subcategories.isNotEmpty) {
-        category = AchievementCategory(
-          id: category.id,
-          name: category.name,
-          subcategories: _sortRefs(category.subcategories, _subcategoryOrder),
-          achievementRefs: category.achievementRefs,
-        );
-      }
-      _categoryDetails[categoryId] = category;
-    }
-
-    // Check cache for achievement definitions
-    if (category != null && category.achievementRefs.isNotEmpty) {
-      var achievements = _cacheService.getCachedAchievements(categoryId);
-      if (achievements == null) {
-        final ids = category.achievementRefs.map((r) => r.id).toList();
-        achievements = await _apiService.getAchievements(ids);
-
-        // Enrich with icons
-        achievements = await _apiService.enrichAchievementIcons(achievements);
-
-        if (achievements.isNotEmpty) {
-          _cacheService.cacheAchievements(categoryId, achievements);
+    try {
+      var category = _cacheService.getCachedAchievementCategory(categoryId);
+      if (category == null) {
+        category = await _apiService.getAchievementCategory(categoryId);
+        if (category != null) {
+          _cacheService.cacheAchievementCategory(category);
         }
       }
-      _categoryAchievements[categoryId] = achievements;
+
+      if (category != null) {
+        if (category.subcategories.isNotEmpty) {
+          category = AchievementCategory(
+            id: category.id,
+            name: category.name,
+            subcategories: _sortRefs(category.subcategories, _subcategoryOrder),
+            achievementRefs: category.achievementRefs,
+          );
+        }
+        _categoryDetails[categoryId] = category;
+      }
+
+      if (category != null && category.achievementRefs.isNotEmpty) {
+        var achievements = _cacheService.getCachedAchievements(categoryId);
+        if (achievements == null) {
+          final ids = category.achievementRefs.map((r) => r.id).toList();
+          achievements = await _apiService.getAchievements(ids);
+          achievements = await _apiService.enrichAchievementIcons(achievements);
+
+          if (achievements.isNotEmpty) {
+            _cacheService.cacheAchievements(categoryId, achievements);
+          }
+        }
+        _categoryAchievements[categoryId] = achievements;
+      }
+    } catch (_) {
+      // Keep any existing cached data — offline mode
     }
 
     _categoryLoading[categoryId] = false;
