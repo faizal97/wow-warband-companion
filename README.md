@@ -16,7 +16,8 @@ View your World of Warcraft characters, gear, Mythic+ scores, and raid progressi
 - **Equipment** — Two-column gear layout with item icons, quality colors, enchants, and gems
 - **Mythic+** — Rating, best dungeon runs, and affix filtering
 - **Raid Progression** — Current expansion raids with boss-by-boss kill tracking and portraits
-- **Fast** — Cached data, parallel loading, images load progressively
+- **Achievements** — Browse achievements by category, track criteria progress, search across your collection, and drill into meta-achievements
+- **Works Offline** — Cached data means you can browse even without a connection
 
 ## Try It
 
@@ -26,21 +27,9 @@ View your World of Warcraft characters, gear, Mythic+ scores, and raid progressi
 
 > On Android, you may need to enable "Install from unknown sources" in Settings.
 
-## Building from Source
+## Support
 
-Requires Flutter 3.2+ and a [Battle.net Developer](https://develop.battle.net/) application.
-
-```bash
-git clone https://github.com/faizal97/wow-warband-companion.git
-cd wow-warband-companion
-```
-
-Create a `.env` file with your credentials, then run:
-```bash
-./run_dev.sh
-```
-
-See [`worker/`](worker/) for the auth proxy setup (Cloudflare Worker).
+If you find this useful, consider [buying me a coffee](https://ko-fi.com/starlighthvn).
 
 ## Disclaimer
 
