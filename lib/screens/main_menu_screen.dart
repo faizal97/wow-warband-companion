@@ -9,10 +9,12 @@ import '../services/character_provider.dart';
 import '../services/region_service.dart';
 import '../models/battlenet_region.dart';
 import '../theme/app_theme.dart';
+import '../services/auction_house_provider.dart';
 import '../services/wow_token_provider.dart';
 import '../widgets/update_dialog.dart';
 import '../widgets/wow_token_card.dart';
 import 'achievement_category_screen.dart';
+import 'auction_house_screen.dart';
 import 'character_list_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
@@ -100,6 +102,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                           ),
                           const SizedBox(height: 40),
                           const WowTokenCard(),
+                          const SizedBox(height: 16),
+                          _MenuCard(
+                            icon: Icons.store_rounded,
+                            title: 'Auction House',
+                            subtitle: 'Check commodity prices',
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const AuctionHouseScreen()),
+                            ),
+                            iconColor: const Color(0xFFFFD700),
+                          ),
                           const SizedBox(height: 16),
                           _MenuCard(
                             icon: Icons.people_rounded,
@@ -217,6 +229,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                                   charProvider.logout();
                                   achProvider.clearProgress();
                                   tokenProvider.clearToken();
+                                  final ahProvider = context.read<AuctionHouseProvider>();
+                                  ahProvider.clear();
                                   await regionSvc.clearAll();
                                   apiSvc.setRegion(BattleNetRegion.us);
                                   if (context.mounted) {
@@ -377,6 +391,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final provider = context.read<CharacterProvider>();
     final achievementProvider = context.read<AchievementProvider>();
     final tokenProvider = context.read<WowTokenProvider>();
+    final ahProvider = context.read<AuctionHouseProvider>();
 
     await regionService.setActiveRegion(region);
     apiService.setRegion(region);
@@ -384,9 +399,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     // TLA+ FIX #2: Bump load generation BEFORE forceRefresh
     provider.bumpLoadGeneration();
 
-    // Clear achievement progress and token cache (per-region data)
+    // Clear achievement progress, token cache, and AH data (per-region data)
     achievementProvider.clearProgress();
     tokenProvider.clearToken();
+    ahProvider.clear();
 
     // Clear cached data and reload for new region
     provider.forceRefresh();
@@ -419,12 +435,14 @@ class _MenuCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Color iconColor;
 
   const _MenuCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.iconColor = const Color(0xFF3FC7EB),
   });
 
   @override
@@ -444,10 +462,10 @@ class _MenuCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFF3FC7EB).withValues(alpha: 0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF3FC7EB), size: 24),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(

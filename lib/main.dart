@@ -1,9 +1,15 @@
+import 'dart:convert';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'config.dart';
+import 'models/auction_item.dart';
+import 'models/battlenet_region.dart';
+import 'services/auction_house_provider.dart';
 import 'services/battlenet_auth_service.dart';
 import 'services/battlenet_api_service.dart';
 import 'services/character_cache_service.dart';
@@ -54,6 +60,16 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => WowTokenProvider(
             fetchFunction: () => apiService.fetchWowTokenPrice(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AuctionHouseProvider(
+            searchFunction: (query) => apiService.searchItems(query),
+            fetchPricesFunction: (itemIds) => _fetchCommodityPrices(
+              itemIds, apiService.region, prefs,
+            ),
+            loadWatchlistFunction: () => _loadWatchlist(prefs),
+            saveWatchlistFunction: (items) => _saveWatchlist(prefs, items),
           ),
         ),
       ],
@@ -333,4 +349,52 @@ class _OAuthCallbackHandlerState extends State<_OAuthCallbackHandler> {
       ),
     );
   }
+}
+
+Future<Map<int, ({int minPrice, int totalQuantity})>> _fetchCommodityPrices(
+  List<int> itemIds,
+  BattleNetRegion region,
+  SharedPreferences prefs,
+) async {
+  if (itemIds.isEmpty) return {};
+
+  const workerUrl = AppConfig.authProxyUrl;
+  final ids = itemIds.join(',');
+
+  try {
+    final response = await http.get(
+      Uri.parse('$workerUrl/commodities/prices?items=$ids&region=${region.key}'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final prices = data['prices'] as Map<String, dynamic>? ?? {};
+      return {
+        for (final entry in prices.entries)
+          int.parse(entry.key): (
+            minPrice: entry.value['min_price'] as int,
+            totalQuantity: entry.value['total_quantity'] as int,
+          ),
+      };
+    }
+  } catch (_) {}
+  return {};
+}
+
+Future<List<AuctionItem>> _loadWatchlist(SharedPreferences prefs) async {
+  final json = prefs.getString('ah_watchlist');
+  if (json == null) return [];
+  try {
+    final list = jsonDecode(json) as List;
+    return list
+        .map((e) => AuctionItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    return [];
+  }
+}
+
+Future<void> _saveWatchlist(SharedPreferences prefs, List<AuctionItem> items) async {
+  final json = jsonEncode(items.map((i) => i.toJson()).toList());
+  await prefs.setString('ah_watchlist', json);
 }
