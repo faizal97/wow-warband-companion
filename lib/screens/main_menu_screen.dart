@@ -233,6 +233,7 @@ class MainMenuScreen extends StatelessWidget {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: AppTheme.surfaceElevated,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -271,49 +272,59 @@ class MainMenuScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                if (detectedRegions.isNotEmpty) ...[
-                  Text(
-                    'DETECTED',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textTertiary,
-                      letterSpacing: 1,
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (detectedRegions.isNotEmpty) ...[
+                          Text(
+                            'DETECTED',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textTertiary,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...detectedRegions.map((entry) => _RegionOption(
+                            region: entry.key,
+                            subtitle: '${entry.value} characters',
+                            isActive: entry.key == activeRegion,
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _switchRegion(context, entry.key);
+                            },
+                          )),
+                        ],
+                        if (otherRegions.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            'OTHER REGIONS',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textTertiary,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ...otherRegions.map((region) => _RegionOption(
+                            region: region,
+                            subtitle: region.key.toUpperCase(),
+                            isActive: region == activeRegion,
+                            onTap: () {
+                              Navigator.pop(sheetContext);
+                              _switchRegion(context, region);
+                            },
+                          )),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  ...detectedRegions.map((entry) => _RegionOption(
-                    region: entry.key,
-                    subtitle: '${entry.value} characters',
-                    isActive: entry.key == activeRegion,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _switchRegion(context, entry.key);
-                    },
-                  )),
-                ],
-                if (otherRegions.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    'OTHER REGIONS',
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textTertiary,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ...otherRegions.map((region) => _RegionOption(
-                    region: region,
-                    subtitle: region.key.toUpperCase(),
-                    isActive: region == activeRegion,
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      _switchRegion(context, region);
-                    },
-                  )),
-                ],
+                ),
               ],
             ),
           ),
