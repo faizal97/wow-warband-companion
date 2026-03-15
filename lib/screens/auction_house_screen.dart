@@ -78,6 +78,7 @@ class _AuctionHouseScreenState extends State<AuctionHouseScreen> {
                       child: _buildSectionLabel(
                         showSearch ? 'RESULTS' : 'WATCHLIST',
                         showSearch ? null : '${provider.watchlist.length}',
+                        showSearch ? null : provider.dataLastUpdated,
                       ),
                     ),
                     if (showSearch)
@@ -198,7 +199,7 @@ class _AuctionHouseScreenState extends State<AuctionHouseScreen> {
     );
   }
 
-  Widget _buildSectionLabel(String label, String? count) {
+  Widget _buildSectionLabel(String label, String? count, DateTime? lastUpdated) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       child: Row(
@@ -222,9 +223,26 @@ class _AuctionHouseScreenState extends State<AuctionHouseScreen> {
               ),
             ),
           ],
+          const Spacer(),
+          if (lastUpdated != null)
+            Text(
+              _timeAgo(lastUpdated),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: AppTheme.textTertiary,
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  String _timeAgo(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'just now';
   }
 
   List<Widget> _buildSearchResults(AuctionHouseProvider provider) {

@@ -124,7 +124,9 @@ async function handleCommoditiesPrices(request, env) {
       return json({ error: `Invalid region: ${region}` }, 400);
     }
 
-    const index = await getCommoditiesIndex(region, env);
+    const data = await getCommoditiesIndex(region, env);
+    const index = data.index || data; // backwards compat with old cache format
+    const lastUpdated = data.last_updated || null;
 
     const prices = {};
     for (const id of itemIds) {
@@ -133,7 +135,7 @@ async function handleCommoditiesPrices(request, env) {
       }
     }
 
-    return json({ prices });
+    return json({ prices, last_updated: lastUpdated });
   } catch (e) {
     return json({ error: 'Failed to fetch commodities prices' }, 500);
   }
@@ -223,10 +225,18 @@ async function getCommoditiesIndex(region, env) {
     }
   }
 
-  // Cache the processed index for 1 hour
-  await env.CACHE.put(cacheKey, JSON.stringify(index), { expirationTtl: 3600 });
+  // Use Blizzard's Last-Modified if available, otherwise current time
+  const lastModified = response.headers.get('Last-Modified');
+  const lastUpdated = lastModified
+    ? new Date(lastModified).getTime()
+    : Date.now();
 
-  return index;
+  const cached_data = { index, last_updated: lastUpdated };
+
+  // Cache the processed data for 1 hour
+  await env.CACHE.put(cacheKey, JSON.stringify(cached_data), { expirationTtl: 3600 });
+
+  return cached_data;
 }
 
 // ---------------------------------------------------------------------------

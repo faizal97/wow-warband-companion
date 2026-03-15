@@ -22,14 +22,17 @@ void main() {
         ],
         fetchPricesFunction: (itemIds) async {
           priceCallCount++;
-          return {
-            for (final id in itemIds)
-              if (mockPrices.containsKey(id))
-                id: (
-                  minPrice: mockPrices[id]!.minPrice,
-                  totalQuantity: mockPrices[id]!.totalQuantity,
-                ),
-          };
+          return (
+            prices: {
+              for (final id in itemIds)
+                if (mockPrices.containsKey(id))
+                  id: (
+                    minPrice: mockPrices[id]!.minPrice,
+                    totalQuantity: mockPrices[id]!.totalQuantity,
+                  ),
+            },
+            lastUpdated: DateTime.now(),
+          );
         },
         loadWatchlistFunction: () async => [],
         saveWatchlistFunction: (_) async {},

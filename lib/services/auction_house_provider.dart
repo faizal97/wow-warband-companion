@@ -10,7 +10,7 @@ import '../models/auction_item.dart';
 /// - Staleness: 20 min, bypassed by pull-to-refresh
 class AuctionHouseProvider extends ChangeNotifier {
   final Future<List<AuctionItem>> Function(String query) searchFunction;
-  final Future<Map<int, ({int minPrice, int totalQuantity})>> Function(
+  final Future<({Map<int, ({int minPrice, int totalQuantity})> prices, DateTime? lastUpdated})> Function(
       List<int> itemIds) fetchPricesFunction;
   final Future<List<AuctionItem>> Function() loadWatchlistFunction;
   final Future<void> Function(List<AuctionItem>) saveWatchlistFunction;
@@ -25,6 +25,9 @@ class AuctionHouseProvider extends ChangeNotifier {
   bool _isLoadingPrices = false;
   String? _errorMessage;
   DateTime? _lastPriceFetch;
+
+  /// When Blizzard last generated the auction data snapshot.
+  DateTime? _dataLastUpdated;
 
   /// Cache of item ID → icon URL to avoid re-fetching across searches.
   final Map<int, String> _iconCache = {};
@@ -44,6 +47,7 @@ class AuctionHouseProvider extends ChangeNotifier {
   bool get isSearching => _isSearching;
   bool get isLoadingPrices => _isLoadingPrices;
   String? get errorMessage => _errorMessage;
+  DateTime? get dataLastUpdated => _dataLastUpdated;
 
   bool isInWatchlist(int itemId) => _watchlist.any((i) => i.id == itemId);
 
@@ -195,8 +199,11 @@ class AuctionHouseProvider extends ChangeNotifier {
 
     try {
       final ids = _watchlist.map((i) => i.id).toList();
-      final prices = await fetchPricesFunction(ids);
-      _applyPrices(prices);
+      final result = await fetchPricesFunction(ids);
+      _applyPrices(result.prices);
+      if (result.lastUpdated != null) {
+        _dataLastUpdated = result.lastUpdated;
+      }
       _lastPriceFetch = DateTime.now();
     } catch (_) {
       _errorMessage = 'Failed to fetch prices';
@@ -209,8 +216,11 @@ class AuctionHouseProvider extends ChangeNotifier {
   /// Fetch prices for specific items only (used when adding to watchlist).
   Future<void> _fetchPricesForItems(List<int> itemIds) async {
     try {
-      final prices = await fetchPricesFunction(itemIds);
-      _applyPrices(prices);
+      final result = await fetchPricesFunction(itemIds);
+      _applyPrices(result.prices);
+      if (result.lastUpdated != null) {
+        _dataLastUpdated = result.lastUpdated;
+      }
       _lastPriceFetch = DateTime.now();
       notifyListeners();
     } catch (_) {
@@ -238,6 +248,7 @@ class AuctionHouseProvider extends ChangeNotifier {
     _isLoadingPrices = false;
     _errorMessage = null;
     _lastPriceFetch = null;
+    _dataLastUpdated = null;
     notifyListeners();
   }
 }

@@ -352,12 +352,12 @@ class _OAuthCallbackHandlerState extends State<_OAuthCallbackHandler> {
   }
 }
 
-Future<Map<int, ({int minPrice, int totalQuantity})>> _fetchCommodityPrices(
+Future<({Map<int, ({int minPrice, int totalQuantity})> prices, DateTime? lastUpdated})> _fetchCommodityPrices(
   List<int> itemIds,
   BattleNetRegion region,
   SharedPreferences prefs,
 ) async {
-  if (itemIds.isEmpty) return {};
+  if (itemIds.isEmpty) return (prices: <int, ({int minPrice, int totalQuantity})>{}, lastUpdated: null);
 
   const workerUrl = AppConfig.authProxyUrl;
   final ids = itemIds.join(',');
@@ -372,14 +372,21 @@ Future<Map<int, ({int minPrice, int totalQuantity})>> _fetchCommodityPrices(
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final prices = data['prices'] as Map<String, dynamic>? ?? {};
-        return {
-          for (final entry in prices.entries)
-            int.parse(entry.key): (
-              minPrice: entry.value['min_price'] as int,
-              totalQuantity: entry.value['total_quantity'] as int,
-            ),
-        };
+        final pricesJson = data['prices'] as Map<String, dynamic>? ?? {};
+        final lastUpdatedMs = data['last_updated'] as int?;
+
+        return (
+          prices: {
+            for (final entry in pricesJson.entries)
+              int.parse(entry.key): (
+                minPrice: entry.value['min_price'] as int,
+                totalQuantity: entry.value['total_quantity'] as int,
+              ),
+          },
+          lastUpdated: lastUpdatedMs != null
+              ? DateTime.fromMillisecondsSinceEpoch(lastUpdatedMs)
+              : null,
+        );
       }
       debugPrint('[AH] Price fetch failed: ${response.statusCode} ${response.body}');
       break; // Don't retry on HTTP errors, only connection errors
@@ -390,7 +397,7 @@ Future<Map<int, ({int minPrice, int totalQuantity})>> _fetchCommodityPrices(
       }
     }
   }
-  return {};
+  return (prices: <int, ({int minPrice, int totalQuantity})>{}, lastUpdated: null);
 }
 
 Future<List<AuctionItem>> _loadWatchlist(SharedPreferences prefs) async {
