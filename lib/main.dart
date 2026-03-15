@@ -361,27 +361,34 @@ Future<Map<int, ({int minPrice, int totalQuantity})>> _fetchCommodityPrices(
 
   const workerUrl = AppConfig.authProxyUrl;
   final ids = itemIds.join(',');
+  final url = '$workerUrl/commodities/prices?items=$ids&region=${region.key}';
 
-  try {
-    final url = '$workerUrl/commodities/prices?items=$ids&region=${region.key}';
-    debugPrint('[AH] Fetching prices: $url');
-    final response = await http.get(Uri.parse(url));
-    debugPrint('[AH] Response ${response.statusCode}: ${response.body.length} bytes');
+  // Retry once on connection errors (mobile networks can reset)
+  for (var attempt = 0; attempt < 2; attempt++) {
+    try {
+      debugPrint('[AH] Fetching prices (attempt ${attempt + 1}): $url');
+      final response = await http.get(Uri.parse(url));
+      debugPrint('[AH] Response ${response.statusCode}: ${response.body.length} bytes');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final prices = data['prices'] as Map<String, dynamic>? ?? {};
-      return {
-        for (final entry in prices.entries)
-          int.parse(entry.key): (
-            minPrice: entry.value['min_price'] as int,
-            totalQuantity: entry.value['total_quantity'] as int,
-          ),
-      };
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final prices = data['prices'] as Map<String, dynamic>? ?? {};
+        return {
+          for (final entry in prices.entries)
+            int.parse(entry.key): (
+              minPrice: entry.value['min_price'] as int,
+              totalQuantity: entry.value['total_quantity'] as int,
+            ),
+        };
+      }
+      debugPrint('[AH] Price fetch failed: ${response.statusCode} ${response.body}');
+      break; // Don't retry on HTTP errors, only connection errors
+    } catch (e) {
+      debugPrint('[AH] Price fetch error (attempt ${attempt + 1}): $e');
+      if (attempt == 0) {
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
     }
-    debugPrint('[AH] Price fetch failed: ${response.statusCode} ${response.body}');
-  } catch (e) {
-    debugPrint('[AH] Price fetch error: $e');
   }
   return {};
 }
