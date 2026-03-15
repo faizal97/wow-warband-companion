@@ -9,11 +9,25 @@ import '../services/character_provider.dart';
 import '../services/region_service.dart';
 import '../models/battlenet_region.dart';
 import '../theme/app_theme.dart';
+import '../widgets/update_dialog.dart';
 import 'achievement_category_screen.dart';
 import 'character_list_screen.dart';
 
-class MainMenuScreen extends StatelessWidget {
+class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
+
+  @override
+  State<MainMenuScreen> createState() => _MainMenuScreenState();
+}
+
+class _MainMenuScreenState extends State<MainMenuScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateDialog.checkAndShow(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

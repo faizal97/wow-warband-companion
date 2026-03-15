@@ -1,7 +1,7 @@
 name: wow_warband_companion
 description: WoW Warband Companion - View your World of Warcraft characters, gear, Mythic+ scores, and raid progression
 publish_to: 'none'
-version: 1.0.0+1
+version: 0.2.0+1
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -20,6 +20,7 @@ dependencies:
   shared_preferences: ^2.5.4
   app_links: ^7.0.0
   package_info_plus: ^9.0.0
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:

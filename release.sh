@@ -32,6 +32,13 @@ esac
 VERSION="${MAJOR}.${MINOR}.${PATCH}"
 echo "==> Bumping ${LATEST} -> ${VERSION} (${BUMP})"
 
+# Update pubspec.yaml version to match release tag
+# Build number increments from current value
+CURRENT_BUILD=$(grep -E '^version:' pubspec.yaml | sed 's/.*+//')
+NEW_BUILD=$((CURRENT_BUILD + 1))
+sed -i '' "s/^version: .*/version: ${VERSION}+${NEW_BUILD}/" pubspec.yaml
+echo "    pubspec.yaml -> ${VERSION}+${NEW_BUILD}"
+
 # Load secrets from .env
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
