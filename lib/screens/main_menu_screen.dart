@@ -60,7 +60,7 @@ class MainMenuScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Builder(
                   builder: (context) {
-                    final regionService = context.watch<RegionService>();
+                    final regionService = context.read<RegionService>();
                     return Text(
                       regionService.activeRegion.displayName,
                       style: GoogleFonts.inter(
@@ -180,9 +180,12 @@ class MainMenuScreen extends StatelessWidget {
                         ),
                       );
                       if (confirmed == true && context.mounted) {
-                        context.read<CharacterProvider>().logout();
-                        await context.read<RegionService>().clearAll();
-                        context.read<BattleNetApiService>().setRegion(BattleNetRegion.us);
+                        final charProvider = context.read<CharacterProvider>();
+                        final regionSvc = context.read<RegionService>();
+                        final apiSvc = context.read<BattleNetApiService>();
+                        charProvider.logout();
+                        await regionSvc.clearAll();
+                        apiSvc.setRegion(BattleNetRegion.us);
                         if (context.mounted) {
                           Navigator.of(context).pushReplacementNamed('/login');
                         }

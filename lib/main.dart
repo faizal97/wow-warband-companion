@@ -10,7 +10,6 @@ import 'services/character_cache_service.dart';
 import 'services/character_provider.dart';
 import 'services/character_detail_provider.dart';
 import 'services/region_service.dart';
-import 'models/battlenet_region.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_menu_screen.dart';
 import 'screens/region_picker_screen.dart';
