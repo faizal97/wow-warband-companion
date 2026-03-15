@@ -6,6 +6,7 @@ import '../models/mythic_plus_profile.dart';
 import '../models/achievement.dart';
 import '../models/raid_progression.dart';
 import '../models/battlenet_region.dart';
+import '../models/wow_token.dart';
 import 'battlenet_auth_service.dart';
 
 /// Fetches WoW character data from the Battle.net API.
@@ -746,5 +747,30 @@ class BattleNetApiService {
 
     await Future.wait(futures);
     return results;
+  }
+
+  /// Fetches the current WoW Token price for the active region.
+  ///
+  /// Uses the Game Data API with dynamic namespace.
+  /// Returns null if the token is unavailable or the request fails.
+  Future<WowToken?> fetchWowTokenPrice() async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return null;
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/token/index?namespace=${_region.dynamicNamespace}&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return WowToken.fromJson(data);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }
