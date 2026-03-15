@@ -7,5 +7,5 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = "PLACEHOLDER_KV_NAMESPACE_ID"        # Replace after: wrangler kv namespace create CACHE
-preview_id = "PLACEHOLDER_KV_PREVIEW_ID"   # Replace after: wrangler kv namespace create CACHE --preview
+id = "9a579130311a464dbff60b223c19fd64"
+preview_id = "728bbec084df47c0b539d074a0cdd2d6"
