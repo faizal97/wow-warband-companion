@@ -96646,7 +96646,7 @@ n.Z()
 s=1
 break}p=4
 s=7
-return A.l(A.e_(A.b([A.cu(A.br("https://wago.tools/db2/Mount/csv",0,null),null),A.cu(A.br("https://wago.tools/db2/PlayerCondition/csv",0,null),null),A.cu(A.br("https://wago.tools/db2/CurrencyTypes/csv",0,null),null),A.cu(A.br("https://wago.tools/db2/JournalEncounterItem/csv",0,null),null),A.cu(A.br("https://wago.tools/db2/JournalEncounter/csv",0,null),null),A.cu(A.br("https://wago.tools/db2/JournalInstance/csv",0,null),null)],t.fB),t.Wd),$async$wy)
+return A.l(A.e_(A.b([A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/Mount/csv",0,null),null),A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/PlayerCondition/csv",0,null),null),A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/CurrencyTypes/csv",0,null),null),A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/JournalEncounterItem/csv",0,null),null),A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/JournalEncounter/csv",0,null),null),A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/JournalInstance/csv",0,null),null)],t.fB),t.Wd),$async$wy)
 case 7:m=a1
 if(J.X(m,0).b!==200){s=1
 break}if(J.X(m,1).b===200){e=J.X(m,1)
@@ -96797,7 +96797,7 @@ n.Z()
 s=1
 break}p=4
 s=7
-return A.l(A.cu(A.br("https://wago.tools/db2/MountXDisplay/csv",0,null),null),$async$wu)
+return A.l(A.cu(A.br("https://wow-companion-auth.fayz.workers.dev/wago/MountXDisplay/csv",0,null),null),$async$wu)
 case 7:m=b
 if(m.b===200){j=m
 l=n.ajX(A.cd(A.cc(j.e)).bf(j.w))
