@@ -61,7 +61,8 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   Widget build(BuildContext context) {
     final article = widget.article;
     final sourceColor = NewsSourceColors.forSource(article.source);
-    final heroUrl = _heroImage ?? article.imageUrl;
+    final rawHeroUrl = _heroImage ?? article.imageUrl;
+    final heroUrl = rawHeroUrl != null ? _proxyIfNeeded(rawHeroUrl) : null;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -334,5 +335,14 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  static String _proxyIfNeeded(String url) {
+    const blockedDomains = ['zamimg.com', 'wow.zamimg.com', 'static.icy-veins.com', 'wp.icy-veins.com'];
+    final uri = Uri.tryParse(url);
+    if (uri != null && blockedDomains.any((d) => uri.host.contains(d))) {
+      return '${const String.fromEnvironment('AUTH_PROXY_URL', defaultValue: 'https://wow-companion-auth.fayz.workers.dev')}/image-proxy?url=${Uri.encodeComponent(url)}';
+    }
+    return url;
   }
 }

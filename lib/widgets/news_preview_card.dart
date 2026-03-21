@@ -120,7 +120,7 @@ class NewsPreviewCard extends StatelessWidget {
                 height: 52,
                 child: article.hasImage
                     ? CachedNetworkImage(
-                        imageUrl: article.imageUrl!,
+                        imageUrl: article.proxiedImageUrl!,
                         width: 52,
                         height: 52,
                         fit: BoxFit.cover,

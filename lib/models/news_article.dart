@@ -73,6 +73,19 @@ class NewsArticle {
   }
 
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+
+  /// Returns the image URL proxied through the Worker for geo-blocked domains.
+  String? get proxiedImageUrl {
+    if (imageUrl == null || imageUrl!.isEmpty) return null;
+    final url = imageUrl!;
+    // Domains that may be geo-blocked and need proxying
+    const blockedDomains = ['zamimg.com', 'wow.zamimg.com', 'static.icy-veins.com', 'wp.icy-veins.com'];
+    final uri = Uri.tryParse(url);
+    if (uri != null && blockedDomains.any((d) => uri.host.contains(d))) {
+      return '${const String.fromEnvironment('AUTH_PROXY_URL', defaultValue: 'https://wow-companion-auth.fayz.workers.dev')}/image-proxy?url=${Uri.encodeComponent(url)}';
+    }
+    return url;
+  }
 }
 
 /// A Reddit post from r/wow.

@@ -54,6 +54,10 @@ export default {
       return handleNews(request, env);
     }
 
+    if (url.pathname === '/image-proxy' && request.method === 'GET') {
+      return handleImageProxy(request, env);
+    }
+
     // Health check
     if (url.pathname === '/' && request.method === 'GET') {
       return json({ status: 'ok', service: 'wow-companion-auth' });
@@ -547,13 +551,27 @@ async function fetchMMOChampionNews(env) {
         const data = await response.json();
         if (data.items && data.items.length > 0) {
           if (articles.length > 0) {
-            // Merge content into existing articles
+            // Merge content + images into existing articles
             const contentMap = {};
             for (const item of data.items) {
-              if (item.url && item.content_html) contentMap[item.url] = item.content_html;
+              if (item.url) {
+                contentMap[item.url] = {
+                  content: item.content_html || '',
+                  image: item.image || null,
+                };
+              }
             }
             for (const article of articles) {
-              if (contentMap[article.url]) article.content = contentMap[article.url];
+              const enrichment = contentMap[article.url];
+              if (enrichment) {
+                if (enrichment.content) article.content = enrichment.content;
+                if (!article.imageUrl && enrichment.image) article.imageUrl = enrichment.image;
+                // Extract first large image from content if still no image
+                if (!article.imageUrl && enrichment.content) {
+                  const imgMatch = enrichment.content.match(/<img[^>]*src="(https?:\/\/[^"]*(?:news|upload|header|banner|featured)[^"]*)"/i);
+                  if (imgMatch) article.imageUrl = imgMatch[1];
+                }
+              }
             }
           } else {
             for (const item of data.items) {
@@ -634,11 +652,25 @@ async function fetchIcyVeinsNews(env) {
         const data = await response.json();
         if (data.items && data.items.length > 0) {
           for (const item of data.items) {
-            // feed2json uses "image" field or we extract from content_html
+            // Extract a meaningful thumbnail — skip tiny icons and logos
             let imageUrl = item.image || null;
-            if (!imageUrl && item.content_html) {
-              const imgMatch = item.content_html.match(/<img[^>]*src="([^"]*)"[^>]*>/i);
-              if (imgMatch) imageUrl = imgMatch[1];
+            if (item.content_html) {
+              // Find all images, pick the first one that looks like article content (not an icon)
+              const allImgs = [...(item.content_html.matchAll(/<img[^>]*src="(https?:\/\/[^"]+)"[^>]*/gi))];
+              for (const m of allImgs) {
+                const src = m[1];
+                // Skip known icon patterns
+                if (src.includes('icon-small') || src.includes('emoji') || src.includes('widgets.js') ||
+                    src.includes('/icons/') || src.includes('gravatar') || src.includes('platform.twitter')) {
+                  continue;
+                }
+                // Prefer wp-content/uploads images (featured/article images)
+                if (src.includes('wp-content/uploads') || src.includes('static.icy-veins.com') ||
+                    src.includes('.jpg') || src.includes('.png') || src.includes('.webp')) {
+                  imageUrl = src;
+                  break;
+                }
+              }
             }
 
             articles.push({
@@ -953,6 +985,66 @@ function detectCategory(title) {
   if (lower.includes('pvp') || lower.includes('arena')) return 'PvP';
   if (lower.includes('raid') || lower.includes('mythic')) return 'Raid & Dungeons';
   return 'News';
+}
+
+// ---------------------------------------------------------------------------
+// Image proxy (bypass geo-blocking for Wowhead/IcyVeins images)
+// ---------------------------------------------------------------------------
+
+const ALLOWED_IMAGE_DOMAINS = new Set([
+  'wow.zamimg.com', 'zamimg.com',
+  'media.mmo-champion.com', 'static.mmo-champion.com',
+  'wp.icy-veins.com', 'static.icy-veins.com',
+  'bnetcmsus-a.akamaihd.net', 'blz-contentstack-images.akamaized.net',
+]);
+
+async function handleImageProxy(request, env) {
+  const url = new URL(request.url);
+  const imageUrl = url.searchParams.get('url');
+  if (!imageUrl) {
+    return json({ error: 'Missing url parameter' }, 400);
+  }
+
+  try {
+    const parsedUrl = new URL(imageUrl);
+    if (!ALLOWED_IMAGE_DOMAINS.has(parsedUrl.hostname)) {
+      return json({ error: 'Domain not allowed' }, 403);
+    }
+
+    // Check KV cache (images cached 24h)
+    const cacheKey = `img_${imageUrl.substring(0, 200)}`;
+    const cached = await env.CACHE.get(cacheKey, { type: 'arrayBuffer' });
+    if (cached) {
+      const contentType = imageUrl.match(/\.webp$/i) ? 'image/webp'
+        : imageUrl.match(/\.png$/i) ? 'image/png'
+        : 'image/jpeg';
+      return new Response(cached, {
+        headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS },
+      });
+    }
+
+    const response = await fetch(imageUrl, {
+      headers: { 'User-Agent': 'WoWCompanion/1.0' },
+    });
+
+    if (!response.ok) {
+      return new Response(null, { status: response.status, headers: CORS_HEADERS });
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const buffer = await response.arrayBuffer();
+
+    // Cache in KV (24h, max 10MB)
+    if (buffer.byteLength < 10 * 1024 * 1024) {
+      await env.CACHE.put(cacheKey, buffer, { expirationTtl: 86400 });
+    }
+
+    return new Response(buffer, {
+      headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=86400', ...CORS_HEADERS },
+    });
+  } catch (e) {
+    return json({ error: 'Image proxy error' }, 500);
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -855,7 +855,7 @@ class _FeaturedNewsCard extends StatelessWidget {
                 children: [
                   article.hasImage
                       ? CachedNetworkImage(
-                          imageUrl: article.imageUrl!,
+                          imageUrl: article.proxiedImageUrl!,
                           fit: BoxFit.cover,
                           placeholder: (_, __) =>
                               _thumbFallback(sourceColor),
@@ -985,7 +985,7 @@ class _CompactNewsCard extends StatelessWidget {
                 height: 72,
                 child: article.hasImage
                     ? CachedNetworkImage(
-                        imageUrl: article.imageUrl!,
+                        imageUrl: article.proxiedImageUrl!,
                         fit: BoxFit.cover,
                         placeholder: (_, __) =>
                             _thumbFallback(sourceColor),
