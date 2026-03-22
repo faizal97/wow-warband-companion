@@ -147,10 +147,13 @@ class _TdGameScreenState extends State<TdGameScreen>
           children: [
             _buildHeaderBar(),
             if (_game.phase == TdGamePhase.setup) _buildSetupBanner(),
-            if (_game.phase != TdGamePhase.setup) _buildAffixBar(),
+            if (_game.phase == TdGamePhase.betweenWaves) _buildWaveClearBanner(),
+            if (_game.phase != TdGamePhase.setup && _game.phase != TdGamePhase.betweenWaves) _buildAffixBar(),
             Expanded(child: _buildLanes()),
             if (_game.phase == TdGamePhase.setup)
               _buildSetupBottomBar()
+            else if (_game.phase == TdGamePhase.betweenWaves)
+              _buildBetweenWavesBottomBar()
             else
               _buildTowerInfoBar(),
           ],
@@ -299,8 +302,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             );
           }),
         ),
-        // Overlays on top of everything (setup uses bottom bar instead)
-        if (_game.phase == TdGamePhase.betweenWaves) _buildBetweenWavesOverlay(),
+        // Overlays (only for end states that don't need interaction)
         if (_game.phase == TdGamePhase.victory) _buildVictoryOverlay(),
         if (_game.phase == TdGamePhase.defeat) _buildDefeatOverlay(),
       ],
@@ -882,137 +884,121 @@ class _TdGameScreenState extends State<TdGameScreen>
     );
   }
 
-  Widget _buildBetweenWavesOverlay() {
+  Widget _buildWaveClearBanner() {
     final nextWave = _game.currentWave + 1;
     final isBossWave = nextWave == TdGameState.totalWaves;
 
-    return Positioned.fill(
-      child: Container(
-        color: AppTheme.background.withValues(alpha: 0.80),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'WAVE ${_game.currentWave} CLEAR',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF00FF98),
-                ),
+    return Container(
+      color: AppTheme.surfaceElevated,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF00FF98).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              'WAVE ${_game.currentWave} CLEAR',
+              style: GoogleFonts.rajdhani(
+                fontSize: 12, fontWeight: FontWeight.w700,
+                color: const Color(0xFF00FF98),
               ),
-              const SizedBox(height: 16),
-              // Next wave preview
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isBossWave
-                        ? const Color(0xFFFF8000).withValues(alpha: 0.4)
-                        : AppTheme.surfaceBorder,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isBossWave
+                  ? 'Next: BOSS WAVE${_game.keystone.hasTyrannical ? " (Tyrannical!)" : ""}'
+                  : 'Next: 5–8 enemies${_game.keystone.hasFortified ? " (Fortified)" : ""}',
+              style: GoogleFonts.inter(
+                fontSize: 11, color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+          const Icon(Icons.swap_vert_rounded, color: AppTheme.textTertiary, size: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBetweenWavesBottomBar() {
+    final nextWave = _game.currentWave + 1;
+
+    return Container(
+      color: AppTheme.surface,
+      padding: EdgeInsets.fromLTRB(
+        16, 12, 16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Tower roster with current lanes
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _game.towers.map((tower) {
+              final towerColor = tower.isDebuffed ? const Color(0xFFFF5E5B) : tower.color;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: towerColor.withValues(alpha: 0.5), width: 1.5),
+                    ),
+                    child: ClipOval(
+                      child: tower.character.avatarUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: tower.character.avatarUrl!,
+                              fit: BoxFit.cover, width: 28, height: 28,
+                              placeholder: (_, __) => _infoBarFallback(tower, towerColor),
+                              errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                            )
+                          : _infoBarFallback(tower, towerColor),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'L${tower.laneIndex + 1}',
+                    style: GoogleFonts.rajdhani(fontSize: 9, color: towerColor),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _startNextWave,
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFA335EE),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFA335EE).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  'START WAVE $nextWave',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16, fontWeight: FontWeight.w700,
+                    color: Colors.white, letterSpacing: 2,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      'NEXT: WAVE $nextWave',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textTertiary,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (isBossWave) ...[
-                      const Icon(Icons.local_fire_department,
-                          color: Color(0xFFFF8000), size: 24),
-                      const SizedBox(height: 4),
-                      Text(
-                        'BOSS WAVE',
-                        style: GoogleFonts.rajdhani(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFFF8000),
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      Text(
-                        '1 Boss + 3 adds',
-                        style: GoogleFonts.inter(
-                          fontSize: 12, color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      if (_game.keystone.hasTyrannical)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Tyrannical: Boss has +50% HP!',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: const Color(0xFFFFA500),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ] else ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 14, height: 14,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFFF5E5B).withValues(alpha: 0.7),
-                              border: Border.all(color: const Color(0xFFFF5E5B), width: 1),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '5–8 enemies',
-                            style: GoogleFonts.rajdhani(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_game.keystone.hasFortified)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Fortified: Enemies have +30% HP',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: const Color(0xFFFFA500),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ],
-                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Reposition towers before continuing',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppTheme.textTertiary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildPurpleButton(
-                'START WAVE $nextWave',
-                onTap: _startNextWave,
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
