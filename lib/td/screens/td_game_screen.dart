@@ -44,9 +44,8 @@ class _TdGameScreenState extends State<TdGameScreen>
     _game = TdGameState();
     _game.startRun(widget.characters, widget.keystoneLevel);
     _game.addListener(_onGameStateChanged);
-    _game.beginGame();
+    // Don't auto-start — let the player position towers first
     _ticker = createTicker(_onTick);
-    _ticker.start();
   }
 
   @override
@@ -299,6 +298,7 @@ class _TdGameScreenState extends State<TdGameScreen>
           }),
         ),
         // Overlays on top of everything
+        if (_game.phase == TdGamePhase.setup) _buildSetupOverlay(),
         if (_game.phase == TdGamePhase.betweenWaves) _buildBetweenWavesOverlay(),
         if (_game.phase == TdGamePhase.victory) _buildVictoryOverlay(),
         if (_game.phase == TdGamePhase.defeat) _buildDefeatOverlay(),
@@ -660,6 +660,53 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
   // 8. Overlays
   // -----------------------------------------------------------------------
+
+  Widget _buildSetupOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: AppTheme.background.withValues(alpha: 0.70),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.swap_vert_rounded,
+                color: AppTheme.textSecondary,
+                size: 36,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'DEPLOY YOUR PARTY',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Drag characters to reposition across lanes',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 28),
+              _buildPurpleButton(
+                'BEGIN WAVE 1',
+                onTap: () {
+                  _game.beginGame();
+                  _lastElapsed = Duration.zero;
+                  _ticker.start();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildBetweenWavesOverlay() {
     return Positioned.fill(
