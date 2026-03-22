@@ -167,9 +167,9 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildHeaderBar() {
-    final timerColor = _game.timer > 30
+    final livesColor = _game.lives > 10
         ? AppTheme.textPrimary
-        : _game.timer > 15
+        : _game.lives > 5
             ? const Color(0xFFFFA500)
             : const Color(0xFFFF5E5B);
 
@@ -191,7 +191,7 @@ class _TdGameScreenState extends State<TdGameScreen>
               style: GoogleFonts.rajdhani(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFFA335EE), // epic purple
+                color: const Color(0xFFA335EE),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -206,15 +206,15 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
           ),
           const SizedBox(width: 12),
-          // Timer
-          Icon(Icons.timer_outlined, color: timerColor, size: 16),
+          // Lives
+          Icon(Icons.favorite, color: livesColor, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${_game.timer.ceil()}s',
+            '${_game.lives}',
             style: GoogleFonts.rajdhani(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: timerColor,
+              color: livesColor,
             ),
           ),
         ],
@@ -1023,7 +1023,7 @@ class _TdGameScreenState extends State<TdGameScreen>
               ),
               const SizedBox(height: 8),
               Text(
-                '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.timer.ceil()}s left',
+                '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.lives} lives left',
                 style: GoogleFonts.rajdhani(
                   fontSize: 14,
                   color: AppTheme.textSecondary,

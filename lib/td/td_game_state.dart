@@ -35,7 +35,8 @@ class TdGameState extends ChangeNotifier {
   List<TdHitEvent> hitEvents = [];
   TdGamePhase phase = TdGamePhase.setup;
   int currentWave = 0;
-  double timer = 60.0;
+  int lives = 20;
+  static const int maxLives = 20;
   int enemiesKilled = 0;
 
   // ---- internal ----
@@ -63,7 +64,7 @@ class TdGameState extends ChangeNotifier {
     hitEvents = [];
     phase = TdGamePhase.setup;
     currentWave = 0;
-    timer = 60.0;
+    lives = maxLives;
     enemiesKilled = 0;
     _enemyIdCounter = 0;
     _towerCooldowns.clear();
@@ -110,28 +111,27 @@ class TdGameState extends ChangeNotifier {
   void tick(double dt) {
     if (phase != TdGamePhase.playing) return;
 
-    // 1. Update timer
-    timer -= dt;
-    if (timer <= 0) {
-      timer = 0;
-      phase = TdGamePhase.defeat;
-      notifyListeners();
-      return;
-    }
-
-    // 2. Move enemies
+    // 1. Move enemies
     for (final e in enemies) {
       if (!e.isDead) {
         e.position += e.speed * e.speedMultiplier * dt;
       }
     }
 
-    // 3. Check enemies reaching the end — 5-second timer penalty each
+    // 2. Check enemies reaching the end — lose lives
     for (final e in enemies) {
       if (!e.isDead && e.reachedEnd) {
-        timer -= 5.0;
+        lives -= e.isBoss ? 5 : 1;
         e.hp = 0; // remove from play
       }
+    }
+
+    // 3. Check defeat
+    if (lives <= 0) {
+      lives = 0;
+      phase = TdGamePhase.defeat;
+      notifyListeners();
+      return;
     }
 
     // 4. Tower attacks
@@ -176,12 +176,6 @@ class TdGameState extends ChangeNotifier {
       } else {
         phase = TdGamePhase.betweenWaves;
       }
-    }
-
-    // 10. Check defeat from timer penalty
-    if (timer <= 0) {
-      timer = 0;
-      phase = TdGamePhase.defeat;
     }
 
     notifyListeners();
@@ -273,41 +267,45 @@ class TdGameState extends ChangeNotifier {
   // -----------------------------------------------------------------------
 
   void _spawnWave() {
-    final baseHp = 100.0 * keystone.hpMultiplier;
+    // Base HP scales with wave number so later waves are harder.
+    // A 620 ilvl melee tower does ~62 dmg every 0.8s = 77 DPS.
+    // At wave 1, enemies should take ~3-4s to kill with one tower.
+    final waveScale = 1.0 + (currentWave - 1) * 0.3; // +30% HP per wave
+    final baseHp = 250.0 * keystone.hpMultiplier * waveScale;
 
     if (currentWave == totalWaves) {
       // Boss wave
-      final bossHp = baseHp * 5.0 * (keystone.hasTyrannical ? 1.5 : 1.0);
+      final bossHp = baseHp * 8.0 * (keystone.hasTyrannical ? 1.5 : 1.0);
       final bossLane = _rng.nextInt(3);
       enemies.add(TdEnemy(
         id: 'e${_enemyIdCounter++}',
         maxHp: bossHp,
-        speed: 0.06,
+        speed: 0.04,
         laneIndex: bossLane,
         isBoss: true,
       ));
 
-      // 3 adds with staggered negative positions.
-      for (var i = 0; i < 3; i++) {
+      // 5 adds across lanes, staggered
+      for (var i = 0; i < 5; i++) {
         enemies.add(TdEnemy(
           id: 'e${_enemyIdCounter++}',
-          maxHp: baseHp * 0.5,
-          speed: 0.08 + _rng.nextDouble() * 0.04,
+          maxHp: baseHp * 0.6,
+          speed: 0.10 + _rng.nextDouble() * 0.05,
           laneIndex: _rng.nextInt(3),
-        )..position = -(i + 1) * 0.15);
+        )..position = -(i + 1) * 0.12);
       }
     } else {
-      // Regular wave
-      final count = 5 + _rng.nextInt(4); // 5-8 enemies
+      // Regular wave: more enemies as waves progress
+      final count = 6 + currentWave * 2 + _rng.nextInt(3); // 8-17 enemies
       final hpMod = keystone.hasFortified ? 1.3 : 1.0;
 
       for (var i = 0; i < count; i++) {
         enemies.add(TdEnemy(
           id: 'e${_enemyIdCounter++}',
           maxHp: baseHp * hpMod,
-          speed: 0.08 + _rng.nextDouble() * 0.04,
+          speed: 0.10 + _rng.nextDouble() * 0.06,
           laneIndex: _rng.nextInt(3),
-        )..position = -i * 0.15);
+        )..position = -i * 0.10);
       }
     }
   }
