@@ -24,6 +24,7 @@ import 'auction_house_screen.dart';
 import 'character_list_screen.dart';
 import 'mount_journal_screen.dart';
 import 'news_screen.dart';
+import '../td/screens/td_menu_screen.dart';
 
 class MainMenuScreen extends StatefulWidget {
   const MainMenuScreen({super.key});
@@ -35,6 +36,9 @@ class MainMenuScreen extends StatefulWidget {
 class _MainMenuScreenState extends State<MainMenuScreen> {
   UpdateInfo? _pendingUpdate;
   String _appVersion = '';
+  int _versionTapCount = 0;
+  bool _tdUnlocked = false;
+  DateTime? _lastVersionTap;
 
   @override
   void initState() {
@@ -187,6 +191,43 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                               );
                             },
                           ),
+                          // Tower Defense (easter egg)
+                          if (_tdUnlocked) ...[
+                            const SizedBox(height: 16),
+                            Center(
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const TdMenuScreen()),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFA335EE).withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFFA335EE).withValues(alpha: 0.15),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.videogame_asset_rounded,
+                                          size: 16,
+                                          color: const Color(0xFFA335EE).withValues(alpha: 0.6)),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Tower Defense',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFFA335EE).withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 40),
                           // Footer links
                           Row(
@@ -315,11 +356,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_appVersion.isNotEmpty)
-            Text(
-              'v$_appVersion',
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: AppTheme.textTertiary.withValues(alpha: 0.5),
+            GestureDetector(
+              onTap: _onVersionTap,
+              child: Text(
+                'v$_appVersion',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: AppTheme.textTertiary.withValues(alpha: 0.5),
+                ),
               ),
             ),
           if (_pendingUpdate != null) ...[
@@ -347,6 +391,25 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         ],
       ),
     );
+  }
+
+  void _onVersionTap() {
+    final now = DateTime.now();
+    if (_lastVersionTap != null &&
+        now.difference(_lastVersionTap!).inSeconds > 3) {
+      _versionTapCount = 0;
+    }
+    _lastVersionTap = now;
+    _versionTapCount++;
+    if (_versionTapCount >= 5 && !_tdUnlocked) {
+      setState(() => _tdUnlocked = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tower Defense unlocked!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   String _buildCharacterSubtitle(BuildContext context) {
