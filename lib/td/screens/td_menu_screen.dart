@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/character.dart';
+import '../../services/battlenet_api_service.dart';
 import '../../services/character_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/wow_class_colors.dart';
@@ -22,8 +23,10 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   int _selectedDungeonIndex = 0;
   final Set<int> _selectedCharacterIds = {};
   late AnimationController _glowController;
+  List<TdDungeon> _dungeons = TdDungeon.fallbackList;
+  bool _dungeonsLoading = true;
 
-  TdDungeon get _selectedDungeon => TdDungeon.all[_selectedDungeonIndex];
+  TdDungeon get _selectedDungeon => _dungeons[_selectedDungeonIndex % _dungeons.length];
 
   @override
   void initState() {
@@ -32,6 +35,25 @@ class _TdMenuScreenState extends State<TdMenuScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
+    _loadDungeons();
+  }
+
+  Future<void> _loadDungeons() async {
+    try {
+      final api = context.read<BattleNetApiService>();
+      final names = await api.fetchMythicPlusDungeonNames();
+      if (mounted && names.isNotEmpty) {
+        setState(() {
+          _dungeons = TdDungeon.fromNames(names);
+          _selectedDungeonIndex = 0;
+          _dungeonsLoading = false;
+        });
+        return;
+      }
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _dungeonsLoading = false);
+    }
   }
 
   @override
@@ -204,8 +226,8 @@ class _TdMenuScreenState extends State<TdMenuScreen>
               GestureDetector(
                 onTap: () => setState(() {
                   _selectedDungeonIndex =
-                      (_selectedDungeonIndex - 1 + TdDungeon.all.length) %
-                          TdDungeon.all.length;
+                      (_selectedDungeonIndex - 1 + _dungeons.length) %
+                          _dungeons.length;
                 }),
                 child: const Padding(
                   padding: EdgeInsets.all(8),
@@ -226,7 +248,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
               GestureDetector(
                 onTap: () => setState(() {
                   _selectedDungeonIndex =
-                      (_selectedDungeonIndex + 1) % TdDungeon.all.length;
+                      (_selectedDungeonIndex + 1) % _dungeons.length;
                 }),
                 child: const Padding(
                   padding: EdgeInsets.all(8),
@@ -238,7 +260,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            'Mythic Keystone Dungeon · ${_selectedDungeonIndex + 1}/${TdDungeon.all.length}',
+            '${_dungeonsLoading ? "Loading rotation..." : "Mythic Keystone Dungeon"} · ${_selectedDungeonIndex + 1}/${_dungeons.length}',
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w400,

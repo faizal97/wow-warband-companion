@@ -541,6 +541,29 @@ class BattleNetApiService {
     return iconMap;
   }
 
+  /// Fetches the current M+ dungeon rotation (names only).
+  Future<List<String>> fetchMythicPlusDungeonNames() async {
+    final token = await _authService.getAccessToken();
+    if (token == null) return [];
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+            '$_apiBase/data/wow/mythic-keystone/dungeon/index?namespace=${_region.dynamicNamespace}&locale=$_locale'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final dungeons = data['dungeons'] as List? ?? [];
+        return dungeons
+            .map((d) => d['name'] as String? ?? '')
+            .where((n) => n.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
   /// Fetches the top-level achievement category index.
   Future<List<AchievementCategoryRef>> getAchievementCategoriesIndex() async {
     final token = await _authService.getAccessToken();

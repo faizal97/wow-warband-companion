@@ -202,77 +202,93 @@ class TdDungeon {
     required this.bossIcon,
   });
 
-  static const List<TdDungeon> all = [
-    TdDungeon(
-      name: 'Stonevault',
-      shortName: 'SV',
-      enemyColor: Color(0xFF8B7355), // earthy brown — kobolds/earthen
-      bossColor: Color(0xFFFF8000),
-      enemyIcon: Icons.terrain_rounded,
-      bossIcon: Icons.local_fire_department,
-    ),
-    TdDungeon(
-      name: 'City of Threads',
-      shortName: 'CoT',
-      enemyColor: Color(0xFF7B68EE), // nerubian purple
-      bossColor: Color(0xFFA335EE),
-      enemyIcon: Icons.bug_report_rounded,
-      bossIcon: Icons.pest_control_rounded,
-    ),
-    TdDungeon(
-      name: 'The Dawnbreaker',
-      shortName: 'DB',
-      enemyColor: Color(0xFF4169E1), // void blue
-      bossColor: Color(0xFF6A0DAD),
-      enemyIcon: Icons.dark_mode_rounded,
-      bossIcon: Icons.auto_awesome_rounded,
-    ),
-    TdDungeon(
-      name: 'Ara-Kara',
-      shortName: 'AK',
-      enemyColor: Color(0xFF2E8B57), // swamp green — spiders
-      bossColor: Color(0xFF006400),
-      enemyIcon: Icons.coronavirus_rounded,
-      bossIcon: Icons.pest_control_rounded,
-    ),
-    TdDungeon(
-      name: 'Cinderbrew Meadery',
-      shortName: 'CM',
-      enemyColor: Color(0xFFCD853F), // amber brew
-      bossColor: Color(0xFFB22222),
-      enemyIcon: Icons.local_bar_rounded,
-      bossIcon: Icons.whatshot_rounded,
-    ),
-    TdDungeon(
-      name: 'Darkflame Cleft',
-      shortName: 'DC',
-      enemyColor: Color(0xFFB22222), // dark flame red
-      bossColor: Color(0xFFFF4500),
-      enemyIcon: Icons.whatshot_rounded,
-      bossIcon: Icons.local_fire_department,
-    ),
-    TdDungeon(
-      name: 'The Rookery',
-      shortName: 'RK',
-      enemyColor: Color(0xFF4682B4), // storm blue — stormriders
-      bossColor: Color(0xFF1E90FF),
-      enemyIcon: Icons.air_rounded,
-      bossIcon: Icons.bolt_rounded,
-    ),
-    TdDungeon(
-      name: 'Priory of the Sacred Flame',
-      shortName: 'PSF',
-      enemyColor: Color(0xFFDAA520), // holy gold — zealots
-      bossColor: Color(0xFFFFD700),
-      enemyIcon: Icons.shield_rounded,
-      bossIcon: Icons.auto_awesome_rounded,
-    ),
+  /// Hand-themed dungeons we know about.
+  static const Map<String, TdDungeon> _known = {
+    'Stonevault': TdDungeon(name: 'Stonevault', shortName: 'SV',
+        enemyColor: Color(0xFF8B7355), bossColor: Color(0xFFFF8000),
+        enemyIcon: Icons.terrain_rounded, bossIcon: Icons.local_fire_department),
+    'City of Threads': TdDungeon(name: 'City of Threads', shortName: 'CoT',
+        enemyColor: Color(0xFF7B68EE), bossColor: Color(0xFFA335EE),
+        enemyIcon: Icons.bug_report_rounded, bossIcon: Icons.pest_control_rounded),
+    'The Dawnbreaker': TdDungeon(name: 'The Dawnbreaker', shortName: 'DB',
+        enemyColor: Color(0xFF4169E1), bossColor: Color(0xFF6A0DAD),
+        enemyIcon: Icons.dark_mode_rounded, bossIcon: Icons.auto_awesome_rounded),
+    'Ara-Kara, City of Echoes': TdDungeon(name: 'Ara-Kara', shortName: 'AK',
+        enemyColor: Color(0xFF2E8B57), bossColor: Color(0xFF006400),
+        enemyIcon: Icons.coronavirus_rounded, bossIcon: Icons.pest_control_rounded),
+    'Cinderbrew Meadery': TdDungeon(name: 'Cinderbrew Meadery', shortName: 'CM',
+        enemyColor: Color(0xFFCD853F), bossColor: Color(0xFFB22222),
+        enemyIcon: Icons.local_bar_rounded, bossIcon: Icons.whatshot_rounded),
+    'Darkflame Cleft': TdDungeon(name: 'Darkflame Cleft', shortName: 'DC',
+        enemyColor: Color(0xFFB22222), bossColor: Color(0xFFFF4500),
+        enemyIcon: Icons.whatshot_rounded, bossIcon: Icons.local_fire_department),
+    'The Rookery': TdDungeon(name: 'The Rookery', shortName: 'RK',
+        enemyColor: Color(0xFF4682B4), bossColor: Color(0xFF1E90FF),
+        enemyIcon: Icons.air_rounded, bossIcon: Icons.bolt_rounded),
+    'Priory of the Sacred Flame': TdDungeon(name: 'Priory of the Sacred Flame', shortName: 'PSF',
+        enemyColor: Color(0xFFDAA520), bossColor: Color(0xFFFFD700),
+        enemyIcon: Icons.shield_rounded, bossIcon: Icons.auto_awesome_rounded),
+    // Older / future dungeons
+    'Mists of Tirna Scithe': TdDungeon(name: 'Mists of Tirna Scithe', shortName: 'MTS',
+        enemyColor: Color(0xFF228B22), bossColor: Color(0xFF006400),
+        enemyIcon: Icons.forest_rounded, bossIcon: Icons.eco_rounded),
+    'The Necrotic Wake': TdDungeon(name: 'The Necrotic Wake', shortName: 'NW',
+        enemyColor: Color(0xFF708090), bossColor: Color(0xFF2F4F4F),
+        enemyIcon: Icons.dangerous_rounded, bossIcon: Icons.dangerous_rounded),
+    'Operation: Mechagon': TdDungeon(name: 'Operation: Mechagon', shortName: 'MECH',
+        enemyColor: Color(0xFFB0C4DE), bossColor: Color(0xFF4682B4),
+        enemyIcon: Icons.settings_rounded, bossIcon: Icons.precision_manufacturing_rounded),
+    'Theater of Pain': TdDungeon(name: 'Theater of Pain', shortName: 'TOP',
+        enemyColor: Color(0xFF8B0000), bossColor: Color(0xFFDC143C),
+        enemyIcon: Icons.sports_mma_rounded, bossIcon: Icons.local_fire_department),
+  };
+
+  /// Fallback icon/color palettes for unknown dungeons — picked by hash.
+  static const List<(Color, Color, IconData, IconData)> _palettes = [
+    (Color(0xFF6A5ACD), Color(0xFF483D8B), Icons.castle_rounded, Icons.auto_awesome_rounded),
+    (Color(0xFFCD5C5C), Color(0xFF8B0000), Icons.whatshot_rounded, Icons.local_fire_department),
+    (Color(0xFF20B2AA), Color(0xFF008B8B), Icons.water_rounded, Icons.waves_rounded),
+    (Color(0xFFDAA520), Color(0xFFB8860B), Icons.shield_rounded, Icons.bolt_rounded),
+    (Color(0xFF778899), Color(0xFF2F4F4F), Icons.terrain_rounded, Icons.dangerous_rounded),
+    (Color(0xFF9370DB), Color(0xFF6A0DAD), Icons.dark_mode_rounded, Icons.pest_control_rounded),
   ];
 
-  /// Pick a random dungeon.
-  static TdDungeon random() {
-    return all[Random().nextInt(all.length)];
+  /// Create a TdDungeon from a name. Uses hand-themed data if known,
+  /// otherwise generates consistent colors from the name hash.
+  static TdDungeon fromName(String name) {
+    // Check exact match first, then substring match for partial names
+    if (_known.containsKey(name)) return _known[name]!;
+    for (final entry in _known.entries) {
+      if (name.contains(entry.key) || entry.key.contains(name)) {
+        return entry.value;
+      }
+    }
+    // Generate from name hash
+    final hash = name.hashCode.abs();
+    final palette = _palettes[hash % _palettes.length];
+    final initials = name.split(' ')
+        .where((w) => w.isNotEmpty && w[0] == w[0].toUpperCase())
+        .map((w) => w[0])
+        .take(3)
+        .join();
+    return TdDungeon(
+      name: name,
+      shortName: initials.isEmpty ? name.substring(0, 2).toUpperCase() : initials,
+      enemyColor: palette.$1,
+      bossColor: palette.$2,
+      enemyIcon: palette.$3,
+      bossIcon: palette.$4,
+    );
   }
+
+  /// Build dungeon list from API names, falling back to known list.
+  static List<TdDungeon> fromNames(List<String> names) {
+    if (names.isEmpty) return _known.values.toList();
+    return names.map((n) => fromName(n)).toList();
+  }
+
+  /// Fallback static list.
+  static List<TdDungeon> get fallbackList => _known.values.toList();
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +326,7 @@ class KeystoneRun {
     return KeystoneRun(
       level: level,
       affixes: allAffixes.take(count).toList(),
-      dungeon: dungeon ?? TdDungeon.random(),
+      dungeon: dungeon ?? TdDungeon.fallbackList[rng.nextInt(TdDungeon.fallbackList.length)],
     );
   }
 }
