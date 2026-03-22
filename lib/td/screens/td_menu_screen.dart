@@ -675,12 +675,18 @@ class _CharacterPickerCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: character.avatarUrl != null
-            ? CachedNetworkImage(
-                imageUrl: character.avatarUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _avatarFallback(classColor),
-                errorWidget: (_, __, ___) => _avatarFallback(classColor),
-              )
+            ? (character.avatarUrl!.startsWith('asset:')
+                ? Image.asset(
+                    character.avatarUrl!.substring(6),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _avatarFallback(classColor),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: character.avatarUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _avatarFallback(classColor),
+                    errorWidget: (_, __, ___) => _avatarFallback(classColor),
+                  ))
             : _avatarFallback(classColor),
       ),
     );

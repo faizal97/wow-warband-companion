@@ -454,16 +454,24 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                 ),
                 child: ClipOval(
                   child: character.avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: character.avatarUrl!,
-                          width: 36, height: 36, fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 18)),
-                          errorWidget: (_, __, ___) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 18)),
-                        )
+                      ? (character.avatarUrl!.startsWith('asset:')
+                          ? Image.asset(
+                              character.avatarUrl!.substring(6),
+                              width: 36, height: 36, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: character.avatarUrl!,
+                              width: 36, height: 36, fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                              errorWidget: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                            ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
                           child: Icon(Icons.person, color: classColor, size: 18)),
@@ -585,22 +593,34 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                 ),
                 child: ClipOval(
                   child: character.avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: character.avatarUrl!,
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: classColor.withValues(alpha: 0.2),
-                            child: Icon(Icons.person,
-                                color: classColor, size: 24),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: classColor.withValues(alpha: 0.2),
-                            child: Icon(Icons.person,
-                                color: classColor, size: 24),
-                          ),
-                        )
+                      ? (character.avatarUrl!.startsWith('asset:')
+                          ? Image.asset(
+                              character.avatarUrl!.substring(6),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: character.avatarUrl!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                            ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
                           child: Icon(Icons.person,
@@ -700,14 +720,23 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                   ),
                   child: ClipOval(
                     child: character.avatarUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: character.avatarUrl!,
-                            width: 52, height: 52, fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 26),
-                            ),
-                          )
+                        ? (character.avatarUrl!.startsWith('asset:')
+                            ? Image.asset(
+                                character.avatarUrl!.substring(6),
+                                width: 52, height: 52, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                ),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: character.avatarUrl!,
+                                width: 52, height: 52, fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                ),
+                              ))
                         : Container(
                             color: classColor.withValues(alpha: 0.2),
                             child: Icon(Icons.person, color: classColor, size: 26),
