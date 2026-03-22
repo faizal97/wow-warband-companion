@@ -157,11 +157,13 @@ class _TdGameScreenState extends State<TdGameScreen>
         child: Column(
           children: [
             _buildHeaderBar(),
-            _buildAffixBar(),
+            if (_game.phase == TdGamePhase.setup) _buildSetupBanner(),
+            if (_game.phase != TdGamePhase.setup) _buildAffixBar(),
             Expanded(child: _buildLanes()),
-            _buildTowerInfoBar(),
-            // Overlay (between waves / victory / defeat)
-            // rendered via Stack in the lanes section instead
+            if (_game.phase == TdGamePhase.setup)
+              _buildSetupBottomBar()
+            else
+              _buildTowerInfoBar(),
           ],
         ),
       ),
@@ -297,8 +299,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             );
           }),
         ),
-        // Overlays on top of everything
-        if (_game.phase == TdGamePhase.setup) _buildSetupOverlay(),
+        // Overlays on top of everything (setup uses bottom bar instead)
         if (_game.phase == TdGamePhase.betweenWaves) _buildBetweenWavesOverlay(),
         if (_game.phase == TdGamePhase.victory) _buildVictoryOverlay(),
         if (_game.phase == TdGamePhase.defeat) _buildDefeatOverlay(),
@@ -757,49 +758,117 @@ class _TdGameScreenState extends State<TdGameScreen>
   // 8. Overlays
   // -----------------------------------------------------------------------
 
-  Widget _buildSetupOverlay() {
-    return Positioned.fill(
-      child: Container(
-        color: AppTheme.background.withValues(alpha: 0.70),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.swap_vert_rounded,
-                color: AppTheme.textSecondary,
-                size: 36,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'DEPLOY YOUR PARTY',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Drag characters to reposition across lanes',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 28),
-              _buildPurpleButton(
-                'BEGIN WAVE 1',
-                onTap: () {
-                  _game.beginGame();
-                  _lastElapsed = Duration.zero;
-                  _ticker.start();
-                },
-              ),
-            ],
+  Widget _buildSetupBanner() {
+    return Container(
+      color: AppTheme.surfaceElevated,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.swap_vert_rounded, color: AppTheme.textSecondary, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            'DRAG CHARACTERS TO POSITION IN LANES',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textSecondary,
+              letterSpacing: 0.5,
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupBottomBar() {
+    return Container(
+      color: AppTheme.surface,
+      padding: EdgeInsets.fromLTRB(
+        16, 12, 16,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Tower roster
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _game.towers.map((tower) {
+              final towerColor = tower.color;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: towerColor.withValues(alpha: 0.5), width: 1.5),
+                    ),
+                    child: ClipOval(
+                      child: tower.character.avatarUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: tower.character.avatarUrl!,
+                              fit: BoxFit.cover, width: 28, height: 28,
+                              placeholder: (_, __) => _infoBarFallback(tower, towerColor),
+                              errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                            )
+                          : _infoBarFallback(tower, towerColor),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tower.character.name.length > 8
+                        ? '${tower.character.name.substring(0, 7)}...'
+                        : tower.character.name,
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  Text(
+                    'L${tower.laneIndex + 1}',
+                    style: GoogleFonts.rajdhani(fontSize: 9, color: towerColor),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          // Begin button
+          GestureDetector(
+            onTap: () {
+              _game.beginGame();
+              _lastElapsed = Duration.zero;
+              _ticker.start();
+            },
+            child: Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFA335EE),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFA335EE).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  'BEGIN WAVE 1',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
