@@ -1,5 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import '../config.dart';
 import '../models/achievement.dart';
+import '../models/achievement_enrichment.dart';
 import 'battlenet_api_service.dart';
 import 'character_cache_service.dart';
 
@@ -72,6 +77,10 @@ class AchievementProvider extends ChangeNotifier {
   List<AchievementDisplay> _recentlyCompleted = [];
   bool _isRecentLoading = false;
 
+  // Enrichment state (from Wago DB2 via worker)
+  final Map<int, AchievementEnrichment> _enrichments = {};
+  final Map<int, bool> _enrichmentLoading = {};
+
   AchievementProvider(this._apiService, this._cacheService);
 
   List<AchievementCategoryRef> get topCategories => _topCategories;
@@ -83,6 +92,8 @@ class AchievementProvider extends ChangeNotifier {
   bool get isRecentLoading => _isRecentLoading;
 
   bool isCategoryLoading(int categoryId) => _categoryLoading[categoryId] ?? false;
+  bool isEnrichmentLoading(int achievementId) => _enrichmentLoading[achievementId] ?? false;
+  AchievementEnrichment? getEnrichment(int achievementId) => _enrichments[achievementId];
 
   AchievementCategory? getCategoryDetails(int categoryId) =>
       _categoryDetails[categoryId];
@@ -309,6 +320,37 @@ class AchievementProvider extends ChangeNotifier {
     }
     // Fetch from API
     return _apiService.getAchievement(achievementId);
+  }
+
+  /// Fetches Wago DB2 enrichment for an achievement (criteria types, quest lines).
+  /// Returns cached data immediately if available; fetches from worker otherwise.
+  Future<AchievementEnrichment?> fetchEnrichment(int achievementId) async {
+    if (_enrichments.containsKey(achievementId)) return _enrichments[achievementId];
+    if (_enrichmentLoading[achievementId] == true) return null;
+
+    _enrichmentLoading[achievementId] = true;
+    notifyListeners();
+
+    try {
+      final url = '${AppConfig.authProxyUrl}/achievement/$achievementId/enriched';
+      debugPrint('[Enrichment] Fetching $url');
+      final response = await http.get(Uri.parse(url));
+      debugPrint('[Enrichment] Status: ${response.statusCode}, body length: ${response.body.length}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final enrichment = AchievementEnrichment.fromJson(data);
+        _enrichments[achievementId] = enrichment;
+        debugPrint('[Enrichment] Loaded ${enrichment.criteria.length} criteria for achievement $achievementId');
+      }
+    } catch (e) {
+      debugPrint('[Enrichment] Error: $e');
+      // Non-critical — detail screen shows base data without enrichment
+    }
+
+    _enrichmentLoading[achievementId] = false;
+    notifyListeners();
+    return _enrichments[achievementId];
   }
 
   /// Finds the category ID and name for a cached achievement.

@@ -50,6 +50,10 @@ export default {
       return handleWagoProxy(request, env);
     }
 
+    if (url.pathname.startsWith('/achievement/') && url.pathname.endsWith('/enriched') && request.method === 'GET') {
+      return handleAchievementEnrichment(request, env);
+    }
+
     if (url.pathname.startsWith('/news/') && request.method === 'GET') {
       return handleNews(request, env);
     }
@@ -259,6 +263,7 @@ async function getCommoditiesIndex(region, env) {
 const ALLOWED_WAGO_TABLES = new Set([
   'Mount', 'MountXDisplay', 'PlayerCondition', 'CurrencyTypes',
   'JournalEncounter', 'JournalEncounterItem', 'JournalInstance',
+  'Creature', 'Faction', 'AreaTable',
 ]);
 
 async function handleWagoProxy(request, env) {
@@ -303,6 +308,630 @@ async function handleWagoProxy(request, env) {
   } catch (e) {
     return json({ error: 'Wago proxy error' }, 500);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Achievement enrichment via Wago DB2
+// ---------------------------------------------------------------------------
+
+// Map Criteria.Type to human-readable labels
+const CRITERIA_TYPE_MAP = {
+  0: 'kill', 8: 'quest', 27: 'quest', 28: 'questline', 29: 'daily_quest',
+  36: 'spell', 41: 'quest', 46: 'quest', 49: 'achievement', 54: 'currency',
+  68: 'criteria', 70: 'scenario', 110: 'world_quest', 174: 'reputation',
+};
+
+const QUEST_TYPES = new Set([8, 27, 28, 29, 41, 110]);
+// Type 46 excluded — can be quest OR reputation; resolved contextually
+
+// --- CSV parsing ---
+
+function parseCSVLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
+function parseCSVToRows(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    if (values.length !== headers.length) continue;
+    const row = {};
+    for (let j = 0; j < headers.length; j++) {
+      row[headers[j]] = values[j];
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/** Fetches a filtered Wago DB2 CSV and parses it into an array of objects. */
+async function fetchWagoTable(table, filter) {
+  const url = `https://wago.tools/db2/${table}/csv${filter ? '?' + filter : ''}`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+  return parseCSVToRows(await response.text());
+}
+
+// --- Bulk lookup tables (cached in KV, shared across all enrichments) ---
+
+/**
+ * Loads and caches a compact lookup from a full Wago DB2 CSV.
+ * Returns a JSON object from KV cache, or fetches + parses + caches the CSV.
+ */
+async function getBulkLookup(tableName, kvKey, buildFn, env) {
+  const cached = await env.CACHE.get(kvKey, { type: 'json' });
+  if (cached) return cached;
+
+  const url = `https://wago.tools/db2/${tableName}/csv`;
+  const response = await fetch(url);
+  if (!response.ok) return {};
+
+  const rows = parseCSVToRows(await response.text());
+  const lookup = buildFn(rows);
+
+  // Cache for 7 days (static game data)
+  await env.CACHE.put(kvKey, JSON.stringify(lookup), { expirationTtl: 604800 });
+  return lookup;
+}
+
+/**
+ * QuestLineXQuest bulk lookup: two indexes for fast access.
+ * - byQuestId: { questId -> { questLineId, orderIndex } }
+ * - byQuestLineId: { questLineId -> [{ questId, orderIndex }] } (sorted by orderIndex)
+ */
+async function getQuestLineXQuestLookup(env) {
+  return getBulkLookup('QuestLineXQuest', 'bulk_qlxq_v1', (rows) => {
+    const byQuestId = {};
+    const byQuestLineId = {};
+    for (const row of rows) {
+      const qid = row['QuestID'];
+      const qlid = row['QuestLineID'];
+      const order = parseInt(row['OrderIndex'] || '0');
+      if (qid && qlid) {
+        byQuestId[qid] = { questLineId: qlid, orderIndex: order };
+        if (!byQuestLineId[qlid]) byQuestLineId[qlid] = [];
+        byQuestLineId[qlid].push({ questId: parseInt(qid), orderIndex: order });
+      }
+    }
+    // Sort each quest line's quests by orderIndex
+    for (const qlid of Object.keys(byQuestLineId)) {
+      byQuestLineId[qlid].sort((a, b) => a.orderIndex - b.orderIndex);
+    }
+    return { byQuestId, byQuestLineId };
+  }, env);
+}
+
+/** QuestLine bulk lookup: { questLineId -> name } */
+async function getQuestLineLookup(env) {
+  return getBulkLookup('QuestLine', 'bulk_ql_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['Name_lang']) {
+        map[row['ID']] = row['Name_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** QuestV2CliTask bulk lookup: { questId -> questTitle } */
+async function getQuestNameLookup(env) {
+  return getBulkLookup('QuestV2CliTask', 'bulk_qnames_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['QuestTitle_lang']) {
+        map[row['ID']] = row['QuestTitle_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** Creature bulk lookup: { creatureId -> { name, title, classification } } */
+async function getCreatureLookup(env) {
+  return getBulkLookup('Creature', 'bulk_creature_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['Name_lang']) {
+        map[row['ID']] = {
+          name: row['Name_lang'],
+          title: row['Title_lang'] || null,
+          classification: parseInt(row['Classification'] || '0'),
+        };
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** Faction bulk lookup: { factionId -> name } */
+async function getFactionLookup(env) {
+  return getBulkLookup('Faction', 'bulk_faction_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['Name_lang']) {
+        map[row['ID']] = row['Name_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** CurrencyTypes bulk lookup: { currencyId -> name } */
+async function getCurrencyLookup(env) {
+  return getBulkLookup('CurrencyTypes', 'bulk_currency_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['Name_lang']) {
+        map[row['ID']] = row['Name_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** JournalInstance bulk lookup: { instanceId -> name } */
+async function getInstanceLookup(env) {
+  return getBulkLookup('JournalInstance', 'bulk_instance_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['Name_lang']) {
+        map[row['ID']] = row['Name_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+/** AreaTable bulk lookup: { areaId -> name } */
+async function getAreaLookup(env) {
+  return getBulkLookup('AreaTable', 'bulk_area_v1', (rows) => {
+    const map = {};
+    for (const row of rows) {
+      if (row['ID'] && row['AreaName_lang']) {
+        map[row['ID']] = row['AreaName_lang'];
+      }
+    }
+    return map;
+  }, env);
+}
+
+// --- Achievement enrichment handler ---
+
+async function handleAchievementEnrichment(request, env) {
+  try {
+    const url = new URL(request.url);
+    const match = url.pathname.match(/^\/achievement\/(\d+)\/enriched$/);
+    if (!match) {
+      return json({ error: 'Invalid achievement ID' }, 400);
+    }
+    const achievementId = match[1];
+
+    // Check per-achievement cache (7 day TTL)
+    const cacheKey = `ach_enriched_v2_${achievementId}`;
+    const cached = await env.CACHE.get(cacheKey);
+    if (cached) {
+      return new Response(cached, {
+        headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+      });
+    }
+
+    // Load all bulk lookup tables (from KV cache or Wago on cold start)
+    const [qlxqLookup, qlLookup, qNameLookup, creatureLookup, factionLookup, currencyLookup, instanceLookup, areaLookup] = await Promise.all([
+      getQuestLineXQuestLookup(env),
+      getQuestLineLookup(env),
+      getQuestNameLookup(env),
+      getCreatureLookup(env),
+      getFactionLookup(env),
+      getCurrencyLookup(env),
+      getInstanceLookup(env),
+      getAreaLookup(env),
+    ]);
+    const lookups = { creatureLookup, factionLookup, currencyLookup, areaLookup };
+
+    // Phase 1: Achievement row + CriteriaTree children (2 filtered requests)
+    const achRows = await fetchWagoTable('Achievement', `filter[ID]=${achievementId}`);
+    if (achRows.length === 0) {
+      return json({ error: 'Achievement not found' }, 404);
+    }
+    const achRow = achRows[0];
+    const criteriaTreeId = achRow['Criteria_tree'];
+
+    if (!criteriaTreeId || criteriaTreeId === '0') {
+      return json({
+        achievementId: parseInt(achievementId),
+        faction: parseInt(achRow['Faction'] || '-1'),
+        rewardItemId: parseInt(achRow['RewardItemID'] || '0'),
+        supercedesId: parseInt(achRow['Supercedes'] || '0'),
+        criteria: {},
+      });
+    }
+
+    const children = await fetchWagoTable('CriteriaTree', `filter[Parent]=${criteriaTreeId}`);
+    const criteriaMap = {};
+
+    const leafChildren = children.filter(c => c['CriteriaID'] && c['CriteriaID'] !== '0');
+    const containerChildren = children.filter(c =>
+      c['Operator'] === '4' && (!c['CriteriaID'] || c['CriteriaID'] === '0'));
+
+    // Phase 2: Resolve Criteria type for leaves (parallel, capped to avoid subrequest limit)
+    // Cap at 20 leaves to stay safe — achievements with 30+ criteria would exceed budget
+    const cappedLeaves = leafChildren.slice(0, 20);
+    const leafResults = await Promise.allSettled(cappedLeaves.map(async (child) => {
+      const rows = await fetchWagoTable('Criteria', `filter[ID]=${child['CriteriaID']}`);
+      const row = rows[0];
+      if (!row) return null;
+      const typeInt = parseInt(row['Type'] || '0');
+      const asset = parseInt(row['Asset'] || '0');
+      const amount = parseInt(child['Amount'] || '0');
+      return { treeId: child['ID'], typeInt, asset, amount, typeLabel: CRITERIA_TYPE_MAP[typeInt] || 'other' };
+    }));
+
+    // Phase 3: Build criteria map with quest chain + asset name data (all local lookups)
+    for (const result of leafResults) {
+      if (result.status !== 'fulfilled' || !result.value) continue;
+      const r = result.value;
+      const mapped = { type: r.typeLabel, criteriaType: r.typeInt, asset: r.asset };
+
+      if (r.amount > 0) mapped.amount = r.amount;
+
+      // Resolve asset names based on criteria type (local lookups)
+      const assetName = resolveAssetName(r.typeInt, r.asset, lookups);
+      if (assetName) {
+        mapped.assetName = assetName;
+        // Override type if type 46 resolved to a faction (it's reputation, not quest)
+        if (r.typeInt === 46 && lookups.factionLookup[String(r.asset)]) {
+          mapped.type = 'reputation';
+        }
+      }
+
+      // Resolve quest chains — skip if already resolved as reputation
+      const shouldResolveQuest = (QUEST_TYPES.has(r.typeInt) || (r.typeInt === 46 && mapped.type !== 'reputation'));
+      if (shouldResolveQuest && r.asset > 0) {
+        const questChain = resolveQuestChain(r.asset, qlxqLookup, qlLookup, qNameLookup);
+        if (questChain) mapped.questLine = questChain;
+      }
+
+      criteriaMap[r.treeId] = mapped;
+    }
+
+    // Phase 4: Container children (fetch tree + criteria, resolve quest chains locally)
+    // Limit containers to 5 to preserve subrequest budget
+    const cappedContainers = containerChildren.slice(0, 5);
+    if (cappedContainers.length > 0) {
+      const containerResults = await Promise.allSettled(cappedContainers.map(async (container) => {
+        const subChildren = await fetchWagoTable('CriteriaTree', `filter[Parent]=${container['ID']}`);
+        const subEntries = {};
+
+        const subLeaves = subChildren.filter(c => c['CriteriaID'] && c['CriteriaID'] !== '0').slice(0, 5);
+        const subResults = await Promise.allSettled(subLeaves.map(async (sub) => {
+          const rows = await fetchWagoTable('Criteria', `filter[ID]=${sub['CriteriaID']}`);
+          const row = rows[0];
+          if (!row) return null;
+          const typeInt = parseInt(row['Type'] || '0');
+          const asset = parseInt(row['Asset'] || '0');
+          const amount = parseInt(sub['Amount'] || '0');
+          const entry = { type: CRITERIA_TYPE_MAP[typeInt] || 'other', criteriaType: typeInt, asset };
+
+          if (amount > 0) entry.amount = amount;
+
+          if (QUEST_TYPES.has(typeInt) && asset > 0) {
+            const questChain = resolveQuestChain(asset, qlxqLookup, qlLookup, qNameLookup);
+            if (questChain) entry.questLine = questChain;
+          }
+
+          const assetName = resolveAssetName(typeInt, asset, lookups);
+          if (assetName) entry.assetName = assetName;
+
+          return { id: sub['ID'], entry };
+        }));
+
+        for (const sr of subResults) {
+          if (sr.status === 'fulfilled' && sr.value) subEntries[sr.value.id] = sr.value.entry;
+        }
+
+        return {
+          id: container['ID'],
+          entry: { type: 'group', description: container['Description_lang'] || '', children: subEntries },
+        };
+      }));
+
+      for (const cr of containerResults) {
+        if (cr.status === 'fulfilled' && cr.value) criteriaMap[cr.value.id] = cr.value.entry;
+      }
+    }
+
+    // Phase 5: Fill missing quest names from Battle.net Quest API
+    // Collect all quest IDs with null names across all criteria
+    const missingQuestIds = new Set();
+    for (const entry of Object.values(criteriaMap)) {
+      collectMissingQuestNames(entry, missingQuestIds);
+    }
+
+    if (missingQuestIds.size > 0) {
+      const resolvedNames = await resolveQuestNamesFromBnet(
+        [...missingQuestIds], env
+      );
+      // Patch quest chains with resolved names
+      for (const entry of Object.values(criteriaMap)) {
+        patchQuestNames(entry, resolvedNames);
+      }
+    }
+
+    // Phase 6: Resolve achievement-level metadata
+    const rewardText = achRow['Reward_lang'] || null;
+    const instanceId = parseInt(achRow['Instance_ID'] || '-1');
+    const instanceName = instanceId > 0 ? (instanceLookup[instanceId] || null) : null;
+    const rewardItemId = parseInt(achRow['RewardItemID'] || '0');
+
+    // Resolve reward item name from Battle.net API (cached in KV)
+    let rewardItemName = null;
+    if (rewardItemId > 0) {
+      rewardItemName = await resolveItemName(rewardItemId, env);
+    }
+
+    const enrichment = {
+      achievementId: parseInt(achievementId),
+      faction: parseInt(achRow['Faction'] || '-1'),
+      rewardItemId,
+      supercedesId: parseInt(achRow['Supercedes'] || '0'),
+      criteria: criteriaMap,
+      // New fields
+      rewardText: rewardText || undefined,
+      instanceName: instanceName || undefined,
+      rewardItemName: rewardItemName || undefined,
+    };
+
+    // Check if any quest names are still unresolved
+    let hasUnresolvedNames = false;
+    for (const entry of Object.values(criteriaMap)) {
+      if (hasUnresolvedQuestNames(entry)) { hasUnresolvedNames = true; break; }
+    }
+
+    const body = JSON.stringify(enrichment);
+    // Short cache if names are missing (retry will pick up more from KV qname cache)
+    const ttl = hasUnresolvedNames ? 600 : 604800; // 10 min vs 7 days
+    await env.CACHE.put(cacheKey, body, { expirationTtl: ttl });
+
+    return new Response(body, {
+      headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+    });
+  } catch (e) {
+    return json({ error: 'Achievement enrichment failed' }, 500);
+  }
+}
+
+/**
+ * Resolves a quest asset ID into a full quest chain using bulk-cached lookups.
+ * Returns { id, name, questCount, quests: [{ id, name }] } or null.
+ * Zero subrequests — all local KV lookups.
+ */
+function resolveQuestChain(questId, qlxqLookup, qlLookup, qNameLookup) {
+  const mapping = qlxqLookup.byQuestId?.[questId];
+  if (!mapping) return null;
+
+  const questLineId = mapping.questLineId;
+  const name = qlLookup[questLineId] || '';
+  const chainQuests = qlxqLookup.byQuestLineId?.[questLineId] || [];
+
+  // Build ordered quest list with names
+  const quests = chainQuests.map(q => ({
+    id: q.questId,
+    name: qNameLookup[q.questId] || null,
+  }));
+
+  return {
+    id: parseInt(questLineId),
+    name,
+    questCount: quests.length,
+    quests,
+  };
+}
+
+/**
+ * Resolves a Criteria.Asset to a human-readable name based on Criteria.Type.
+ * Uses bulk-cached lookups — zero subrequests.
+ */
+function resolveAssetName(criteriaType, asset, lookups) {
+  if (!asset || asset <= 0) return null;
+  const key = String(asset); // Lookup keys are strings from CSV parsing
+
+  switch (criteriaType) {
+    case 0: { // Kill creature
+      const c = lookups.creatureLookup[key];
+      if (c) {
+        const classLabel = { 1: 'Elite', 2: 'Rare Elite', 3: 'World Boss', 4: 'Rare' }[c.classification];
+        return classLabel ? `${c.name} (${classLabel})` : c.name;
+      }
+      return null;
+    }
+    case 54: // Currency
+      return lookups.currencyLookup[key] || null;
+    case 46: { // Can be quest OR reputation — try faction lookup first
+      const factionName = lookups.factionLookup[key];
+      if (factionName) return factionName;
+      return null;
+    }
+    case 174: // Reputation
+      return lookups.factionLookup[key] || null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Resolves an item ID to a name via Battle.net Item API.
+ * Cached permanently in KV (item names don't change).
+ */
+async function resolveItemName(itemId, env) {
+  const cached = await env.CACHE.get(`item_${itemId}`);
+  if (cached && cached !== '__NONE__') return cached;
+  if (cached === '__NONE__') return null;
+
+  try {
+    const token = await getClientToken(env);
+    const response = await fetch(
+      `https://us.api.blizzard.com/data/wow/item/${itemId}?namespace=static-us&locale=en_US`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    if (response.ok) {
+      const data = await response.json();
+      const name = data.name || null;
+      if (name) {
+        await env.CACHE.put(`item_${itemId}`, name);
+        return name;
+      }
+    }
+  } catch (_) {}
+
+  await env.CACHE.put(`item_${itemId}`, '__NONE__', { expirationTtl: 86400 });
+  return null;
+}
+
+/** Collects quest IDs with null names from a criteria entry (including group children). */
+function collectMissingQuestNames(entry, missingSet) {
+  if (entry.questLine?.quests) {
+    for (const q of entry.questLine.quests) {
+      if (!q.name) missingSet.add(q.id);
+    }
+  }
+  if (entry.children) {
+    for (const child of Object.values(entry.children)) {
+      collectMissingQuestNames(child, missingSet);
+    }
+  }
+}
+
+/** Patches resolved quest names into criteria entries. */
+function patchQuestNames(entry, resolvedNames) {
+  if (entry.questLine?.quests) {
+    for (const q of entry.questLine.quests) {
+      if (!q.name && resolvedNames[q.id]) {
+        q.name = resolvedNames[q.id];
+      }
+    }
+  }
+  if (entry.children) {
+    for (const child of Object.values(entry.children)) {
+      patchQuestNames(child, resolvedNames);
+    }
+  }
+}
+
+/** Checks if an entry has any quests with null names. */
+function hasUnresolvedQuestNames(entry) {
+  if (entry.questLine?.quests) {
+    for (const q of entry.questLine.quests) {
+      if (!q.name) return true;
+    }
+  }
+  if (entry.children) {
+    for (const child of Object.values(entry.children)) {
+      if (hasUnresolvedQuestNames(child)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Resolves quest names from the Battle.net Quest API.
+ * Checks KV cache first (KV reads are free — don't count as subrequests).
+ * Fetches uncached names from Blizzard API in parallel.
+ * Caches each resolved name in KV permanently (quest names never change).
+ * Uses budget-aware batching to stay within CF Workers' 50 subrequest limit.
+ */
+async function resolveQuestNamesFromBnet(questIds, env) {
+  const resolved = {};
+  const uncached = [];
+
+  // Check KV for cached names (free — not subrequests)
+  const kvResults = await Promise.all(
+    questIds.map(async (id) => {
+      const name = await env.CACHE.get(`qname_${id}`);
+      return { id, name };
+    })
+  );
+
+  for (const { id, name } of kvResults) {
+    if (name && name !== '__NONE__') {
+      resolved[id] = name;
+    } else if (!name) {
+      // Not in KV at all — needs fetching
+      uncached.push(id);
+    }
+    // If name === '__NONE__', skip — already tried and failed
+  }
+
+  if (uncached.length === 0) return resolved;
+
+  try {
+    const token = await getClientToken(env);
+
+    // Fetch in batches of 25 to avoid overwhelming the API
+    // On cold start: ~25 subrequests used before this point → ~24 budget
+    // On warm start: ~20 subrequests → ~29 budget
+    // Each subsequent call resolves more from KV cache
+    const batchSize = 25;
+    const toFetch = uncached.slice(0, batchSize);
+
+    const results = await Promise.allSettled(toFetch.map(async (questId) => {
+      // Try static-us first, then fall back to other namespace patterns
+      for (const ns of ['static-us']) {
+        const response = await fetch(
+          `https://us.api.blizzard.com/data/wow/quest/${questId}?namespace=${ns}&locale=en_US`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          const title = data.title || null;
+          if (title) {
+            await env.CACHE.put(`qname_${questId}`, title);
+            return { id: questId, name: title };
+          }
+        }
+      }
+      // Mark as unresolvable (cache a sentinel to avoid retrying)
+      await env.CACHE.put(`qname_${questId}`, '__NONE__', { expirationTtl: 86400 });
+      return { id: questId, name: null };
+    }));
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.name) {
+        resolved[result.value.id] = result.value.name;
+      }
+    }
+  } catch (_) {
+    // Token fetch failed — return what we have from KV
+  }
+
+  return resolved;
 }
 
 // ---------------------------------------------------------------------------
