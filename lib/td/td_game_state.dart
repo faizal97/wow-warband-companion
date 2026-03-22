@@ -61,6 +61,22 @@ class TdGameState extends ChangeNotifier {
   final Map<int, double> _towerCooldowns = {};
   final Random _rng = Random();
 
+  /// Star rating based on lives remaining (only valid in victory phase).
+  int get starRating {
+    if (phase != TdGamePhase.victory) return 0;
+    if (lives >= maxLives) return 3;     // Flawless: 0 lives lost
+    if (lives >= maxLives * 0.75) return 2; // Clean: 75%+ lives
+    return 1;                              // Scraped by
+  }
+
+  /// Keystone level change after the run.
+  /// Victory: +1 to +3 based on stars. Defeat: -1 (min stays at 2).
+  int get keystoneLevelChange {
+    if (phase == TdGamePhase.victory) return starRating;
+    if (phase == TdGamePhase.defeat) return -1;
+    return 0;
+  }
+
   // -----------------------------------------------------------------------
   // Public API
   // -----------------------------------------------------------------------

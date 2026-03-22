@@ -1202,6 +1202,14 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _buildVictoryOverlay() {
+    final stars = _game.starRating;
+    final nextLevel = (widget.keystoneLevel + _game.keystoneLevelChange).clamp(2, 999);
+    final starColor = stars == 3
+        ? const Color(0xFFFFD700) // gold
+        : stars == 2
+            ? const Color(0xFFC0C0C0) // silver-ish
+            : const Color(0xFFCD7F32); // bronze
+
     return Positioned.fill(
       child: Container(
         color: AppTheme.background.withValues(alpha: 0.85),
@@ -1209,39 +1217,68 @@ class _TdGameScreenState extends State<TdGameScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.emoji_events, color: Color(0xFFFFD700), size: 48),
+              // Star rating
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(3, (i) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                    color: i < stars ? starColor : AppTheme.textTertiary,
+                    size: 36,
+                  ),
+                )),
+              ),
               const SizedBox(height: 12),
               Text(
-                'KEYSTONE COMPLETE',
+                stars == 3 ? 'FLAWLESS' : stars == 2 ? 'CLEAN RUN' : 'KEYSTONE COMPLETE',
                 style: GoogleFonts.rajdhani(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFFFD700),
+                  color: starColor,
+                  letterSpacing: 2,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.lives} lives left',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 14,
+                '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.lives}/${TdGameState.maxLives} lives',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
                   color: AppTheme.textSecondary,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 6),
+              // Keystone change
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00FF98).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'KEYSTONE +$stars \u2192 Level $nextLevel',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF00FF98),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
                   const SizedBox(width: 16),
                   _buildPurpleButton(
-                    'NEXT: +${widget.keystoneLevel + 1}',
+                    'NEXT: +$nextLevel',
                     onTap: () {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
                           builder: (_) => TdGameScreen(
                             characters: widget.characters,
-                            keystoneLevel: widget.keystoneLevel + 1,
+                            keystoneLevel: nextLevel,
                             dungeon: widget.dungeon,
                             classRegistry: widget.classRegistry,
                           ),
@@ -1259,6 +1296,9 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _buildDefeatOverlay() {
+    final nextLevel = (widget.keystoneLevel - 1).clamp(2, 999);
+    final depleted = widget.keystoneLevel > 2;
+
     return Positioned.fill(
       child: Container(
         color: AppTheme.background.withValues(alpha: 0.85),
@@ -1274,18 +1314,59 @@ class _TdGameScreenState extends State<TdGameScreen>
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFFFF5E5B),
+                  letterSpacing: 2,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                '${_game.enemiesKilled} kills',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 14,
+                '${_game.enemiesKilled} kills \u2022 Wave ${_game.currentWave}/${TdGameState.totalWaves}',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
                   color: AppTheme.textSecondary,
                 ),
               ),
-              const SizedBox(height: 28),
-              _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
+              if (depleted) ...[
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF5E5B).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'KEYSTONE -1 \u2192 Level $nextLevel',
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFF5E5B),
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 24),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
+                  const SizedBox(width: 16),
+                  _buildPurpleButton(
+                    'RETRY +$nextLevel',
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TdGameScreen(
+                            characters: widget.characters,
+                            keystoneLevel: nextLevel,
+                            dungeon: widget.dungeon,
+                            classRegistry: widget.classRegistry,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ],
           ),
         ),
