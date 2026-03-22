@@ -781,6 +781,9 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _buildSetupBottomBar() {
+    final unassigned = _game.towers.where((t) => t.laneIndex < 0).toList();
+    final allDeployed = unassigned.isEmpty;
+
     return Container(
       color: AppTheme.surface,
       padding: EdgeInsets.fromLTRB(
@@ -790,78 +793,81 @@ class _TdGameScreenState extends State<TdGameScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tower roster
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: _game.towers.map((tower) {
-              final towerColor = tower.color;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: towerColor.withValues(alpha: 0.5), width: 1.5),
+          // Unassigned tower dock
+          if (unassigned.isNotEmpty) ...[
+            Text(
+              'DRAG TO A LANE',
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textTertiary,
+                letterSpacing: 1,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: unassigned.map((tower) {
+                final towerIndex = _game.towers.indexOf(tower);
+                final towerColor = tower.color;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: Draggable<int>(
+                    data: towerIndex,
+                    feedback: Material(
+                      color: Colors.transparent,
+                      child: _buildTowerWithName(tower, towerColor, isDragging: true),
                     ),
-                    child: ClipOval(
-                      child: tower.character.avatarUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: tower.character.avatarUrl!,
-                              fit: BoxFit.cover, width: 28, height: 28,
-                              placeholder: (_, __) => _infoBarFallback(tower, towerColor),
-                              errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
-                            )
-                          : _infoBarFallback(tower, towerColor),
+                    childWhenDragging: Opacity(
+                      opacity: 0.3,
+                      child: _buildTowerWithName(tower, towerColor),
                     ),
+                    child: _buildTowerWithName(tower, towerColor),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tower.character.name.length > 8
-                        ? '${tower.character.name.substring(0, 7)}...'
-                        : tower.character.name,
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    'L${tower.laneIndex + 1}',
-                    style: GoogleFonts.rajdhani(fontSize: 9, color: towerColor),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
           // Begin button
           GestureDetector(
-            onTap: () {
-              _game.beginGame();
-              _lastElapsed = Duration.zero;
-              _ticker.start();
-            },
+            onTap: allDeployed
+                ? () {
+                    _game.beginGame();
+                    _lastElapsed = Duration.zero;
+                    _ticker.start();
+                  }
+                : null,
             child: Container(
               width: double.infinity,
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFA335EE),
+                color: allDeployed
+                    ? const Color(0xFFA335EE)
+                    : AppTheme.surfaceElevated,
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFA335EE).withValues(alpha: 0.3),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: allDeployed
+                    ? null
+                    : Border.all(color: AppTheme.surfaceBorder),
+                boxShadow: allDeployed
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFFA335EE).withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: Center(
                 child: Text(
-                  'BEGIN WAVE 1',
+                  allDeployed
+                      ? 'BEGIN WAVE 1'
+                      : 'DEPLOY ${unassigned.length} MORE',
                   style: GoogleFonts.rajdhani(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: allDeployed ? Colors.white : AppTheme.textTertiary,
                     letterSpacing: 2,
                   ),
                 ),

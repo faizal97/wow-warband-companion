@@ -54,7 +54,7 @@ class TdGameState extends ChangeNotifier {
     towers = List.generate(selectedCharacters.length, (i) {
       return TdTower(
         character: selectedCharacters[i],
-        laneIndex: i.clamp(0, 2),
+        laneIndex: -1, // unassigned — player must deploy
       );
     });
 
