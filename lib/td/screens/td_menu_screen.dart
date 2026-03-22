@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/character.dart';
-import '../../services/battlenet_api_service.dart';
 import '../../services/character_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/wow_class_colors.dart';
-import '../models/td_models.dart';
+import '../data/effect_types.dart';
+import '../data/td_class_registry.dart';
+import '../data/td_dungeon_registry.dart';
+import '../data/td_rotation.dart';
 import 'td_game_screen.dart';
 
 class TdMenuScreen extends StatefulWidget {
@@ -23,10 +25,14 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   int _selectedDungeonIndex = 0;
   final Set<int> _selectedCharacterIds = {};
   late AnimationController _glowController;
-  List<TdDungeon> _dungeons = TdDungeon.fallbackList;
-  bool _dungeonsLoading = true;
 
-  TdDungeon get _selectedDungeon => _dungeons[_selectedDungeonIndex % _dungeons.length];
+  TdClassRegistry? _classRegistry;
+  TdRotation? _rotation;
+  List<TdDungeonDef> _dungeons = [];
+  bool _dataLoading = true;
+
+  TdDungeonDef get _selectedDungeon =>
+      _dungeons[_selectedDungeonIndex % _dungeons.length];
 
   @override
   void initState() {
@@ -35,24 +41,27 @@ class _TdMenuScreenState extends State<TdMenuScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2000),
     )..repeat(reverse: true);
-    _loadDungeons();
+    _loadData();
   }
 
-  Future<void> _loadDungeons() async {
-    try {
-      final api = context.read<BattleNetApiService>();
-      final names = await api.fetchMythicPlusDungeonNames();
-      if (mounted && names.isNotEmpty) {
-        setState(() {
-          _dungeons = TdDungeon.fromNames(names);
-          _selectedDungeonIndex = 0;
-          _dungeonsLoading = false;
-        });
-        return;
-      }
-    } catch (_) {}
+  Future<void> _loadData() async {
+    final classReg = TdClassRegistry();
+    final dungeonReg = TdDungeonRegistry();
+    final rotation = TdRotation();
+
+    await Future.wait([
+      classReg.load(),
+      dungeonReg.load(),
+      rotation.load(),
+    ]);
+
     if (mounted) {
-      setState(() => _dungeonsLoading = false);
+      setState(() {
+        _classRegistry = classReg;
+        _rotation = rotation;
+        _dungeons = rotation.getDungeons(dungeonReg);
+        _dataLoading = false;
+      });
     }
   }
 
@@ -72,7 +81,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
     });
   }
 
-  bool get _canStart => _selectedCharacterIds.length >= 3;
+  bool get _canStart => _selectedCharacterIds.length >= 3 && !_dataLoading;
 
   void _startRun(List<WowCharacter> allCharacters) {
     final selected = allCharacters
@@ -84,6 +93,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           characters: selected,
           keystoneLevel: _keystoneLevel,
           dungeon: _selectedDungeon,
+          classRegistry: _classRegistry!,
         ),
       ),
     );
@@ -91,6 +101,31 @@ class _TdMenuScreenState extends State<TdMenuScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_dataLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.background,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Color(0xFFA335EE),
+                strokeWidth: 2,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading dungeon data...',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: Consumer<CharacterProvider>(
@@ -123,6 +158,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
                             character: character,
                             isSelected: isSelected,
                             onTap: () => _toggleCharacter(character.id),
+                            classRegistry: _classRegistry,
                           );
                         },
                         childCount: characters.length,
@@ -213,7 +249,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
               ],
             ),
             child: Icon(
-              dungeon.bossIcon,
+              TdIcons.getIcon(dungeon.bossIcon),
               color: dungeon.bossColor.withValues(alpha: 0.9),
               size: 30,
             ),
@@ -258,9 +294,21 @@ class _TdMenuScreenState extends State<TdMenuScreen>
               ),
             ],
           ),
+          if (dungeon.theme.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              dungeon.theme,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: dungeon.bossColor.withValues(alpha: 0.6),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Text(
-            '${_dungeonsLoading ? "Loading rotation..." : "Mythic Keystone Dungeon"} · ${_selectedDungeonIndex + 1}/${_dungeons.length}',
+            '${_rotation?.season ?? 'Loading...'} \u00B7 ${_selectedDungeonIndex + 1}/${_dungeons.length}',
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w400,
@@ -552,17 +600,20 @@ class _CharacterPickerCard extends StatelessWidget {
   final WowCharacter character;
   final bool isSelected;
   final VoidCallback onTap;
+  final TdClassRegistry? classRegistry;
 
   const _CharacterPickerCard({
     required this.character,
     required this.isSelected,
     required this.onTap,
+    this.classRegistry,
   });
 
   @override
   Widget build(BuildContext context) {
     final classColor = WowClassColors.forClass(character.characterClass);
-    final archetype = archetypeForClass(character.characterClass);
+    final classDef = classRegistry?.getClass(character.characterClass);
+    final archetype = classDef?.archetype ?? TowerArchetype.melee;
     final archetypeLabel = archetype.name.toUpperCase();
 
     return GestureDetector(
@@ -667,6 +718,30 @@ class _CharacterPickerCard extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                                if (classDef != null) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6),
+                                    child: Text(
+                                      '\u00B7',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: AppTheme.textTertiary,
+                                      ),
+                                    ),
+                                  ),
+                                  Flexible(
+                                    child: Text(
+                                      classDef.passive.name,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w400,
+                                        color: AppTheme.textTertiary,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ],

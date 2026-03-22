@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../models/character.dart';
 import '../../theme/app_theme.dart';
+import '../data/effect_types.dart';
+import '../data/td_class_registry.dart';
 import '../models/td_models.dart';
 import '../td_game_state.dart';
 
@@ -15,13 +17,15 @@ import '../td_game_state.dart';
 class TdGameScreen extends StatefulWidget {
   final List<WowCharacter> characters;
   final int keystoneLevel;
-  final TdDungeon? dungeon;
+  final TdDungeonDef dungeon;
+  final TdClassRegistry classRegistry;
 
   const TdGameScreen({
     super.key,
     required this.characters,
     required this.keystoneLevel,
-    this.dungeon,
+    required this.dungeon,
+    required this.classRegistry,
   });
 
   @override
@@ -41,7 +45,7 @@ class _TdGameScreenState extends State<TdGameScreen>
   void initState() {
     super.initState();
     _game = TdGameState();
-    _game.startRun(widget.characters, widget.keystoneLevel, dungeon: widget.dungeon);
+    _game.startRun(widget.characters, widget.keystoneLevel, dungeon: widget.dungeon, classRegistry: widget.classRegistry);
     _game.addListener(_onGameStateChanged);
     // Don't auto-start — let the player position towers first
     _ticker = createTicker(_onTick);
@@ -473,7 +477,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
             child: Center(
               child: Icon(
-                enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon,
+                TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
                 color: Colors.white,
                 size: enemy.isBoss ? 18 : 14,
               ),
@@ -1045,6 +1049,7 @@ class _TdGameScreenState extends State<TdGameScreen>
                             characters: widget.characters,
                             keystoneLevel: widget.keystoneLevel + 1,
                             dungeon: widget.dungeon,
+                            classRegistry: widget.classRegistry,
                           ),
                         ),
                       );
@@ -1279,7 +1284,7 @@ class _TdGameScreenState extends State<TdGameScreen>
         return 'High damage, hits the closest enemy in lane';
       case TowerArchetype.ranged:
         return 'Moderate damage (0.8x), hits the furthest enemy in lane';
-      case TowerArchetype.healer:
+      case TowerArchetype.support:
         return 'Does not attack. Buffs adjacent lane towers +30% damage';
       case TowerArchetype.aoe:
         return 'Low damage (0.4x), hits ALL enemies in lane simultaneously';
