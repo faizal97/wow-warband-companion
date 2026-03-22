@@ -64,8 +64,22 @@ class TdTower {
 
   TdTower({required this.character, required this.laneIndex})
       : archetype = archetypeForClass(character.characterClass),
-        baseDamage = (character.equippedItemLevel ?? 600) / 10.0,
+        baseDamage = _normalizedDamage(character.equippedItemLevel),
         color = WowClassColors.forClass(character.characterClass);
+
+  /// Normalize ilvl to a consistent damage value regardless of stat squish.
+  /// Pre-Midnight ilvl ~560-640 and post-Midnight ilvl ~80-120 both map
+  /// to a 40-70 damage range. Higher ilvl = more damage within the range.
+  static double _normalizedDamage(int? ilvl) {
+    final raw = ilvl ?? 100;
+    if (raw > 300) {
+      // Pre-squish: 560-640 maps to 40-70
+      return 40 + ((raw - 500).clamp(0, 200) / 200) * 30;
+    } else {
+      // Post-squish (Midnight): 80-120 maps to 40-70
+      return 40 + ((raw - 60).clamp(0, 80) / 80) * 30;
+    }
+  }
 
   /// Returns half damage when debuffed.
   double get effectiveDamage => isDebuffed ? baseDamage / 2 : baseDamage;
