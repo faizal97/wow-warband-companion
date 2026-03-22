@@ -1,0 +1,14 @@
+{
+  "_version": 1,
+  "season": "Midnight Season 1",
+  "dungeons": [
+    "windrunner_spire",
+    "murder_row",
+    "den_of_nalorakk",
+    "maisara_caverns",
+    "magisters_terrace",
+    "pit_of_saron",
+    "seat_of_the_triumvirate",
+    "skyreach"
+  ]
+}

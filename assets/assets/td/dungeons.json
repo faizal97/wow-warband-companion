@@ -1,0 +1,267 @@
+{
+  "_version": 1,
+  "dungeons": {
+    "windrunner_spire": {
+      "name": "Windrunner Spire",
+      "shortName": "WS",
+      "theme": "The ancestral home of the Windrunner family, haunted by spectral echoes.",
+      "enemyColor": "#9B8B7A",
+      "bossColor": "#FF6B35",
+      "enemyIcon": "ghost",
+      "bossIcon": "fire",
+      "hpMultiplier": 1.0,
+      "speedMultiplier": 1.0,
+      "enemyCountModifier": 0,
+      "lanePattern": {
+        "type": "drift",
+        "params": { "switchChance": 0.3 }
+      },
+      "enemyModifiers": [
+        { "type": "spectral", "dmgReduction": 0.3, "untilPosition": 0.5 }
+      ],
+      "bossModifiers": [
+        { "type": "fire_zone", "duration": 3.0, "interval": 5.0 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "spectral", "dmgReduction": 0.4, "untilPosition": 0.6 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "spectral", "dmgReduction": 0.5, "untilPosition": 0.7 }
+          ]
+        }
+      }
+    },
+    "murder_row": {
+      "name": "Murder Row",
+      "shortName": "MR",
+      "theme": "The seedy underbelly of Silvermoon, teeming with rogues and assassins.",
+      "enemyColor": "#6B8E23",
+      "bossColor": "#8B0000",
+      "enemyIcon": "dagger",
+      "bossIcon": "skull",
+      "hpMultiplier": 0.7,
+      "speedMultiplier": 1.1,
+      "enemyCountModifier": 2,
+      "lanePattern": {
+        "type": "zerg",
+        "params": {}
+      },
+      "enemyModifiers": [
+        { "type": "ranged_attack", "damage": 5.0, "interval": 3.0 }
+      ],
+      "bossModifiers": [
+        { "type": "teleport_lanes", "interval": 4.0 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "ranged_attack", "damage": 7.0, "interval": 2.5 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "ranged_attack", "damage": 10.0, "interval": 2.0 }
+          ]
+        }
+      }
+    },
+    "den_of_nalorakk": {
+      "name": "Den of Nalorakk",
+      "shortName": "DN",
+      "theme": "The bear god's lair deep within Zul'Aman, home to primal beasts.",
+      "enemyColor": "#8B4513",
+      "bossColor": "#CD853F",
+      "enemyIcon": "bear",
+      "bossIcon": "beast",
+      "hpMultiplier": 1.3,
+      "speedMultiplier": 0.7,
+      "enemyCountModifier": -2,
+      "lanePattern": {
+        "type": "packs",
+        "params": { "packSize": 3 }
+      },
+      "enemyModifiers": [],
+      "bossModifiers": [
+        { "type": "enrage", "hpThreshold": 0.3, "speedMult": 2.0 },
+        { "type": "summon_adds", "count": 2, "interval": 6.0, "hpFraction": 0.2 }
+      ]
+    },
+    "maisara_caverns": {
+      "name": "Maisara Caverns",
+      "shortName": "MC",
+      "theme": "Ancient underground caves pulsing with lingering dark magic.",
+      "enemyColor": "#556B2F",
+      "bossColor": "#2F4F4F",
+      "enemyIcon": "spider",
+      "bossIcon": "demon",
+      "hpMultiplier": 1.0,
+      "speedMultiplier": 1.0,
+      "enemyCountModifier": 0,
+      "lanePattern": {
+        "type": "sequential",
+        "params": {}
+      },
+      "enemyModifiers": [
+        { "type": "resurrect", "chance": 0.2, "hpFraction": 0.4 }
+      ],
+      "bossModifiers": [
+        { "type": "split_on_death", "count": 3, "hpFraction": 0.3 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "resurrect", "chance": 0.3, "hpFraction": 0.5 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "resurrect", "chance": 0.4, "hpFraction": 0.6 }
+          ]
+        }
+      }
+    },
+    "magisters_terrace": {
+      "name": "Magisters' Terrace",
+      "shortName": "MT",
+      "theme": "Kael'thas's stronghold, brimming with arcane energy and magical wards.",
+      "enemyColor": "#6A5ACD",
+      "bossColor": "#483D8B",
+      "enemyIcon": "arcane",
+      "bossIcon": "mage",
+      "hpMultiplier": 1.0,
+      "speedMultiplier": 1.0,
+      "enemyCountModifier": 0,
+      "lanePattern": {
+        "type": "weakest_lane",
+        "params": {}
+      },
+      "enemyModifiers": [
+        { "type": "shield", "hits": 1, "chance": 0.2 }
+      ],
+      "bossModifiers": [
+        { "type": "reflect_damage", "duration": 2.0, "interval": 6.0 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "shield", "hits": 2, "chance": 0.3 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "shield", "hits": 3, "chance": 0.5 }
+          ]
+        }
+      }
+    },
+    "pit_of_saron": {
+      "name": "Pit of Saron",
+      "shortName": "PS",
+      "theme": "A frozen hellscape within Icecrown, where saronite is forged in suffering.",
+      "enemyColor": "#708090",
+      "bossColor": "#4682B4",
+      "enemyIcon": "ice",
+      "bossIcon": "frost",
+      "hpMultiplier": 1.7,
+      "speedMultiplier": 0.5,
+      "enemyCountModifier": -3,
+      "lanePattern": {
+        "type": "heavy_center",
+        "params": { "centerWeight": 0.6 }
+      },
+      "enemyModifiers": [
+        { "type": "frost_aura", "slowPercent": 0.03, "stackable": true }
+      ],
+      "bossModifiers": [
+        { "type": "knockback_tower", "interval": 5.0 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "frost_aura", "slowPercent": 0.05, "stackable": true }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "frost_aura", "slowPercent": 0.08, "stackable": true }
+          ]
+        }
+      }
+    },
+    "seat_of_the_triumvirate": {
+      "name": "Seat of the Triumvirate",
+      "shortName": "ST",
+      "theme": "A void-touched eredar sanctum on Argus, warped by shadow and entropy.",
+      "enemyColor": "#9370DB",
+      "bossColor": "#6A0DAD",
+      "enemyIcon": "void",
+      "bossIcon": "shadow",
+      "hpMultiplier": 0.9,
+      "speedMultiplier": 0.9,
+      "enemyCountModifier": 2,
+      "lanePattern": {
+        "type": "spread",
+        "params": {}
+      },
+      "enemyModifiers": [
+        { "type": "phase", "invulnDuration": 0.5, "interval": 3.0 },
+        { "type": "accelerate", "startSpeedMult": 0.5, "endSpeedMult": 1.5 }
+      ],
+      "bossModifiers": [
+        { "type": "stacking_damage", "damagePerSecond": 2.0, "rampRate": 1.5 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "phase", "invulnDuration": 0.7, "interval": 3.0 },
+            { "type": "accelerate", "startSpeedMult": 0.5, "endSpeedMult": 1.7 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "phase", "invulnDuration": 1.0, "interval": 2.5 },
+            { "type": "accelerate", "startSpeedMult": 0.5, "endSpeedMult": 2.0 }
+          ]
+        }
+      }
+    },
+    "skyreach": {
+      "name": "Skyreach",
+      "shortName": "SR",
+      "theme": "An arakkoa fortress soaring above the Spires of Arak, swept by fierce winds.",
+      "enemyColor": "#DAA520",
+      "bossColor": "#FFD700",
+      "enemyIcon": "wind",
+      "bossIcon": "bird",
+      "hpMultiplier": 0.7,
+      "speedMultiplier": 1.3,
+      "enemyCountModifier": 2,
+      "lanePattern": {
+        "type": "lane_switch",
+        "params": { "switchChance": 0.4 }
+      },
+      "enemyModifiers": [
+        { "type": "lane_switch", "chance": 0.4, "positionThreshold": 0.5 }
+      ],
+      "bossModifiers": [
+        { "type": "wind_push", "pushAmount": 0.3, "interval": 4.0 }
+      ],
+      "modifierScaling": {
+        "7": {
+          "enemyModifiers": [
+            { "type": "lane_switch", "chance": 0.5, "positionThreshold": 0.5 }
+          ]
+        },
+        "11": {
+          "enemyModifiers": [
+            { "type": "lane_switch", "chance": 0.6, "positionThreshold": 0.5 }
+          ]
+        }
+      }
+    }
+  }
+}

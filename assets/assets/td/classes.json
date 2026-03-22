@@ -1,0 +1,262 @@
+{
+  "_version": 1,
+  "archetypes": {
+    "melee": {
+      "damageMult": 1.0,
+      "attackSpeed": 0.8,
+      "targeting": "closest",
+      "description": "High damage, hits the closest enemy in lane",
+      "stats": "1.0x damage  \u00B7  0.8s attack speed  \u00B7  targets closest enemy"
+    },
+    "ranged": {
+      "damageMult": 1.0,
+      "attackSpeed": 1.0,
+      "targeting": "furthest",
+      "description": "Full damage, hits the furthest enemy in lane",
+      "stats": "1.0x damage  \u00B7  1.0s attack speed  \u00B7  targets furthest enemy"
+    },
+    "support": {
+      "damageMult": 0,
+      "attackSpeed": 0,
+      "targeting": "none",
+      "description": "Does not attack. Buffs adjacent lane towers",
+      "stats": "No attack  \u00B7  buffs adjacent towers"
+    },
+    "aoe": {
+      "damageMult": 0.5,
+      "attackSpeed": 1.3,
+      "targeting": "all_in_lane",
+      "description": "Reduced damage, hits ALL enemies in lane simultaneously",
+      "stats": "0.5x damage  \u00B7  1.3s attack speed  \u00B7  targets all enemies in lane"
+    }
+  },
+  "_fallback": {
+    "archetype": "ranged",
+    "passive": {
+      "name": "Basic Attack",
+      "description": "No special passive ability.",
+      "trigger": "passive",
+      "effects": []
+    },
+    "attackColor": "#8899AA"
+  },
+  "classes": {
+    "warrior": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Cleave",
+        "description": "Attacks hit an additional nearby enemy.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 1 }]
+      },
+      "empoweredPassive": {
+        "name": "Mighty Cleave",
+        "description": "Attacks hit 2 additional enemies.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 2 }]
+      },
+      "attackColor": "#C69B6D"
+    },
+    "rogue": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Ambush",
+        "description": "Every 4th attack deals 3.5x damage.",
+        "trigger": "on_nth_attack", "nth": 4,
+        "effects": [{ "type": "damage_multiplier", "value": 3.5 }]
+      },
+      "empoweredPassive": {
+        "name": "Shadowstrike",
+        "description": "Every 3rd attack deals 3.5x damage.",
+        "trigger": "on_nth_attack", "nth": 3,
+        "effects": [{ "type": "damage_multiplier", "value": 3.5 }]
+      },
+      "attackColor": "#FFF468"
+    },
+    "death knight": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Frost Fever",
+        "description": "Attacks slow enemies by 30% for 2.5 seconds.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "slow_enemy", "value": 0.3, "duration": 2.5 }]
+      },
+      "empoweredPassive": {
+        "name": "Remorseless Winter",
+        "description": "Attacks slow enemies by 30% for 2.5s and apply a 10% damage DoT.",
+        "trigger": "on_attack",
+        "effects": [
+          { "type": "slow_enemy", "value": 0.3, "duration": 2.5 },
+          { "type": "dot", "damageType": "percentDamage", "value": 0.1, "duration": 2.5, "ticks": 2 }
+        ]
+      },
+      "attackColor": "#C41E3A"
+    },
+    "paladin": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Divine Shield",
+        "description": "Immune to all tower debuffs.",
+        "trigger": "passive",
+        "effects": [{ "type": "immune_to_debuff" }]
+      },
+      "empoweredPassive": {
+        "name": "Aura Mastery",
+        "description": "Immune to all debuffs and cleanses adjacent towers.",
+        "trigger": "passive",
+        "effects": [
+          { "type": "immune_to_debuff" },
+          { "type": "cleanse_adjacent" }
+        ]
+      },
+      "attackColor": "#F48CBA"
+    },
+    "monk": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Flurry",
+        "description": "Attacks 60% faster than normal.",
+        "trigger": "passive",
+        "effects": [{ "type": "attack_speed_multiplier", "value": 0.625 }]
+      },
+      "empoweredPassive": {
+        "name": "Storm, Earth, and Fire",
+        "description": "Attacks 80% faster than normal.",
+        "trigger": "passive",
+        "effects": [{ "type": "attack_speed_multiplier", "value": 0.556 }]
+      },
+      "attackColor": "#00FF98"
+    },
+    "demon hunter": {
+      "archetype": "melee",
+      "passive": {
+        "name": "Fel Rush",
+        "description": "Can attack enemies in an adjacent lane.",
+        "trigger": "passive",
+        "effects": [{ "type": "cross_lane_attack", "value": 1 }]
+      },
+      "empoweredPassive": {
+        "name": "Havoc",
+        "description": "Can attack enemies in all lanes.",
+        "trigger": "passive",
+        "effects": [{ "type": "cross_lane_attack", "value": 2 }]
+      },
+      "attackColor": "#A330C9"
+    },
+    "mage": {
+      "archetype": "ranged",
+      "passive": {
+        "name": "Hot Streak",
+        "description": "30% chance to critically strike for 2.5x damage.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "crit_chance", "chance": 0.3, "multiplier": 2.5 }]
+      },
+      "empoweredPassive": {
+        "name": "Pyroblast",
+        "description": "30% chance to critically strike for 3.5x damage.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "crit_chance", "chance": 0.3, "multiplier": 3.5 }]
+      },
+      "attackColor": "#3FC7EB"
+    },
+    "hunter": {
+      "archetype": "ranged",
+      "passive": {
+        "name": "Multi-Shot",
+        "description": "Attacks hit an additional nearby enemy.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 1 }]
+      },
+      "empoweredPassive": {
+        "name": "Volley",
+        "description": "Attacks hit 2 additional enemies.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 2 }]
+      },
+      "attackColor": "#AAD372"
+    },
+    "warlock": {
+      "archetype": "ranged",
+      "passive": {
+        "name": "Corruption",
+        "description": "Attacks apply a DoT dealing 50% damage over 4 seconds.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "dot", "damageType": "percentDamage", "value": 0.5, "duration": 4.0, "ticks": 4 }]
+      },
+      "empoweredPassive": {
+        "name": "Agony",
+        "description": "Attacks apply DoT (50% over 4s) and slow enemies 15%.",
+        "trigger": "on_attack",
+        "effects": [
+          { "type": "dot", "damageType": "percentDamage", "value": 0.5, "duration": 4.0, "ticks": 4 },
+          { "type": "slow_enemy", "value": 0.15, "duration": 4.0 }
+        ]
+      },
+      "attackColor": "#8788EE"
+    },
+    "evoker": {
+      "archetype": "ranged",
+      "passive": {
+        "name": "Charged Blast",
+        "description": "Charges for 3s then unleashes a blast for 5x damage.",
+        "trigger": "passive",
+        "effects": [{ "type": "charge_attack", "chargeTime": 3.0, "multiplier": 5.0 }]
+      },
+      "empoweredPassive": {
+        "name": "Dragonrage",
+        "description": "Charges for 2.5s then unleashes a blast for 7x damage.",
+        "trigger": "passive",
+        "effects": [{ "type": "charge_attack", "chargeTime": 2.5, "multiplier": 7.0 }]
+      },
+      "attackColor": "#33937F"
+    },
+    "priest": {
+      "archetype": "support",
+      "passive": {
+        "name": "Power Word: Fortitude",
+        "description": "Increases damage of adjacent towers by 35%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_damage", "value": 0.35 }]
+      },
+      "empoweredPassive": {
+        "name": "Voidform",
+        "description": "Increases damage of adjacent towers by 50%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_damage", "value": 0.5 }]
+      },
+      "attackColor": "#E0E0E0"
+    },
+    "druid": {
+      "archetype": "support",
+      "passive": {
+        "name": "Nature's Swiftness",
+        "description": "Increases attack speed of adjacent towers by 30%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_speed", "value": 0.3 }]
+      },
+      "empoweredPassive": {
+        "name": "Incarnation",
+        "description": "Increases attack speed of adjacent towers by 40%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_speed", "value": 0.4 }]
+      },
+      "attackColor": "#FF7C0A"
+    },
+    "shaman": {
+      "archetype": "aoe",
+      "passive": {
+        "name": "Chain Lightning",
+        "description": "Attacks bounce to 4 enemies with diminishing damage.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "chain_damage", "bounces": [1.0, 0.8, 0.6, 0.4] }]
+      },
+      "empoweredPassive": {
+        "name": "Stormkeeper",
+        "description": "Attacks bounce to 5 enemies with less diminishing.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "chain_damage", "bounces": [1.0, 0.9, 0.8, 0.7, 0.6] }]
+      },
+      "attackColor": "#0070DD"
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "_version": 1,
+  "_description": "Global balance constants for the Tower Defense game. Edit these to tune difficulty without changing code.",
+  "general": {
+    "startingLives": 25,
+    "totalWaves": 5,
+    "baseEnemyHp": 200,
+    "baseEnemySpeed": 0.10,
+    "waveHpScalePerWave": 0.2
+  },
+  "boss": {
+    "hpMultiplier": 6.0,
+    "speed": 0.04,
+    "addsCount": 3,
+    "addsHpFraction": 0.4,
+    "addsSpeedVariance": 0.05,
+    "addsStaggerDistance": 0.12
+  },
+  "enemySpawn": {
+    "baseCount": 6,
+    "countPerWave": 2,
+    "minCount": 4,
+    "maxCount": 20,
+    "speedVariance": 0.06,
+    "staggerDistance": 0.10
+  },
+  "archetypes": {
+    "melee": {
+      "damageMult": 1.0,
+      "attackInterval": 0.8,
+      "targeting": "closest"
+    },
+    "ranged": {
+      "damageMult": 1.0,
+      "attackInterval": 1.0,
+      "targeting": "furthest"
+    },
+    "support": {
+      "damageMult": 0,
+      "attackInterval": 2.0,
+      "targeting": "none"
+    },
+    "aoe": {
+      "damageMult": 0.5,
+      "attackInterval": 1.3,
+      "targeting": "all_in_lane"
+    }
+  },
+  "keystoneScaling": {
+    "linearPhaseEnd": 10,
+    "linearRate": 0.12,
+    "exponentialBase": 1.96,
+    "exponentialLinear": 0.25,
+    "exponentialQuadratic": 0.05
+  },
+  "affixes": {
+    "thresholds": {
+      "oneAffix": 4,
+      "twoAffixes": 7,
+      "threeAffixes": 11
+    },
+    "fortified": {
+      "hpMultiplier": 1.3
+    },
+    "tyrannical": {
+      "hpMultiplier": 1.5
+    },
+    "bolstering": {
+      "speedBuff": 1.1
+    },
+    "bursting": {
+      "debuffDuration": 2.0
+    },
+    "sanguine": {
+      "poolDuration": 4.0,
+      "healPerSecond": 0.15,
+      "healRange": 0.05
+    }
+  },
+  "tower": {
+    "debuffDamageReduction": 0.5,
+    "slotPositions": [0.25, 0.55, 0.85],
+    "damageRange": {
+      "min": 40,
+      "max": 70
+    }
+  },
+  "valor": {
+    "cleanClearThreshold": 20,
+    "standardClearMin": 10,
+    "cleanClearReward": 3,
+    "standardClearReward": 2,
+    "scrapedByReward": 1,
+    "depleteReward": 0,
+    "sharpenCost": 1,
+    "sharpenMaxStacks": 3,
+    "sharpenDamageBonus": 0.15,
+    "fortifyCost": 1,
+    "fortifyBossLeakReduction": 2,
+    "empowerCost": 2,
+    "sixthTowerLevel": 5
+  }
+}
