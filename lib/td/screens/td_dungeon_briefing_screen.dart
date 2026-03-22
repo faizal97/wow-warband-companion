@@ -719,7 +719,7 @@ class TdDungeonBriefingScreen extends StatelessWidget {
         return 'Knocks a random tower to a different lane every ${interval}s.';
       case 'stacking_damage':
         final dps = (p['damagePerSecond'] as num?)?.toDouble() ?? 2.0;
-        return 'Deals ${dps} stacking damage per second to all towers. Increases over time.';
+        return 'Deals $dps stacking damage per second to all towers. Increases over time.';
       case 'wind_push':
         final push = ((p['pushAmount'] as num?)?.toDouble() ?? 0.3) * 100;
         final interval = (p['interval'] as num?)?.toDouble() ?? 4.0;
