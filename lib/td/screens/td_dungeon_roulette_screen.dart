@@ -116,16 +116,19 @@ class _TdDungeonRouletteScreenState extends State<TdDungeonRouletteScreen>
         children: [
           // Dungeon background image (cycles with roulette, revealed on landing)
           if (dungeon.backgroundImage != null)
-            AnimatedSwitcher(
-              duration: Duration(milliseconds: _landed ? 500 : 60),
-              child: Positioned.fill(
-                key: ValueKey('${_displayIndex}_bg'),
-                child: Opacity(
-                  opacity: _landed ? 0.25 : 0.08,
-                  child: Image.asset(
-                    dungeon.backgroundImage!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: _landed ? 0.30 : 0.10,
+                duration: Duration(milliseconds: _landed ? 500 : 80),
+                child: AnimatedSwitcher(
+                  duration: Duration(milliseconds: _landed ? 500 : 60),
+                  child: SizedBox.expand(
+                    key: ValueKey('${_displayIndex}_bg'),
+                    child: Image.asset(
+                      dungeon.backgroundImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
                   ),
                 ),
               ),
@@ -139,9 +142,9 @@ class _TdDungeonRouletteScreenState extends State<TdDungeonRouletteScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: 0.5),
-                      Colors.black.withValues(alpha: 0.2),
-                      Colors.black.withValues(alpha: 0.5),
+                      Colors.black.withValues(alpha: 0.4),
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.4),
                     ],
                   ),
                 ),
