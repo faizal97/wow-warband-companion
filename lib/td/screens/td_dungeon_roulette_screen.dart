@@ -114,6 +114,43 @@ class _TdDungeonRouletteScreenState extends State<TdDungeonRouletteScreen>
       backgroundColor: AppTheme.background,
       body: Stack(
         children: [
+          // Dungeon background image (cycles with roulette, revealed on landing)
+          if (dungeon.backgroundImage != null)
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: _landed ? 0.30 : 0.10,
+                duration: Duration(milliseconds: _landed ? 500 : 80),
+                child: AnimatedSwitcher(
+                  duration: Duration(milliseconds: _landed ? 500 : 60),
+                  child: SizedBox.expand(
+                    key: ValueKey('${_displayIndex}_bg'),
+                    child: Image.asset(
+                      dungeon.backgroundImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          // Dark gradient overlay for text readability
+          if (dungeon.backgroundImage != null)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.4),
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.4),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Background glow
           if (_landed)
             AnimatedBuilder(

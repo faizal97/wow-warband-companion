@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/character.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/wow_class_colors.dart';
+import '../data/effect_types.dart';
 import '../data/td_balance_config.dart';
 import '../data/td_class_registry.dart';
 import '../data/td_hero_registry.dart';
@@ -245,6 +246,22 @@ class _TdUpgradeScreenState extends State<TdUpgradeScreen>
   }
 
   // -----------------------------------------------------------------------
+  // Class icon fallback helper
+  // -----------------------------------------------------------------------
+
+  Widget _classIconOrPerson(WowCharacter character, Color classColor, double size) {
+    final classIcon = TdClassIcons.assetPath(character.characterClass);
+    if (classIcon != null) {
+      return Image.asset(
+        classIcon,
+        width: size * 0.7, height: size * 0.7, fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(Icons.person, color: classColor, size: size),
+      );
+    }
+    return Icon(Icons.person, color: classColor, size: size);
+  }
+
+  // -----------------------------------------------------------------------
   // Tower upgrade card
   // -----------------------------------------------------------------------
 
@@ -289,7 +306,7 @@ class _TdUpgradeScreenState extends State<TdUpgradeScreen>
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person, color: classColor, size: 20),
+                                child: _classIconOrPerson(character, classColor, 20),
                               ),
                             )
                           : CachedNetworkImage(
@@ -299,16 +316,16 @@ class _TdUpgradeScreenState extends State<TdUpgradeScreen>
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person, color: classColor, size: 20),
+                                child: _classIconOrPerson(character, classColor, 20),
                               ),
                               errorWidget: (_, __, ___) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person, color: classColor, size: 20),
+                                child: _classIconOrPerson(character, classColor, 20),
                               ),
                             ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
-                          child: Icon(Icons.person, color: classColor, size: 20),
+                          child: _classIconOrPerson(character, classColor, 20),
                         ),
                 ),
               ),

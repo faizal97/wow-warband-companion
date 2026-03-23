@@ -45,3 +45,8 @@ flutter:
     - assets/icons/
     - assets/td/
     - assets/td/heroes/
+    - assets/td/enemies/
+    - assets/td/backgrounds/
+    - assets/td/icons/
+    - assets/td/icons/classes/
+    - assets/td/icons/affixes/

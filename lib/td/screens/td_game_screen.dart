@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -50,6 +52,15 @@ class _TdGameScreenState extends State<TdGameScreen>
   // Track which lane+slot is being hovered during a drag.
   int? _dragHoverLane;
   int? _dragHoverSlot;
+
+  /// Scale factor for game elements based on screen width.
+  /// Mobile (~375px) = 1.0x, Tablet (~768px) = 1.3x, Desktop (~1200px+) = 1.6x
+  double get _uiScale {
+    final width = MediaQuery.of(context).size.width;
+    if (width > 1000) return 1.6;
+    if (width > 700) return 1.3;
+    return 1.0;
+  }
 
   @override
   void initState() {
@@ -276,7 +287,7 @@ class _TdGameScreenState extends State<TdGameScreen>
                   return GestureDetector(
                     onTap: () => _showAffixInfo(a),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         border: Border.all(color: const Color(0xFFFFA500), width: 1),
                         borderRadius: BorderRadius.circular(4),
@@ -284,6 +295,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          Image.asset(
+                            'assets/td/icons/affixes/${a.name}.png',
+                            width: 14,
+                            height: 14,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.bolt, size: 12, color: Color(0xFFFFA500),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           Text(
                             a.name.toUpperCase(),
                             style: GoogleFonts.rajdhani(
@@ -292,9 +312,6 @@ class _TdGameScreenState extends State<TdGameScreen>
                               color: const Color(0xFFFFA500),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          Icon(Icons.info_outline, size: 10,
-                              color: const Color(0xFFFFA500).withValues(alpha: 0.6)),
                         ],
                       ),
                     ),
@@ -352,9 +369,36 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildLanes() {
+    final dungeon = _game.keystone.dungeon;
     return Stack(
       fit: StackFit.expand,
       children: [
+        // Dungeon background image (subtle, atmospheric)
+        if (dungeon.backgroundImage != null) ...[
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.15,
+              child: Image.asset(
+                dungeon.backgroundImage!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          // Dark overlay for readability
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.3),
+            ),
+          ),
+        ],
+        // Particle overlay (above background, behind lanes)
+        if (dungeon.particles != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: _TdParticleOverlay(config: dungeon.particles!),
+            ),
+          ),
         Column(
           children: List.generate(3, (lane) {
             return Expanded(
@@ -587,7 +631,7 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildEnemy(TdEnemy enemy, double laneWidth, double laneHeight) {
-    final size = enemy.isBoss ? 36.0 : 24.0;
+    final size = (enemy.isBoss ? 36.0 : 24.0) * _uiScale;
     final left = ((1.0 - enemy.position) * (laneWidth - size)).clamp(0.0, laneWidth - size);
     final top = (laneHeight - size) / 2;
 
@@ -623,7 +667,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             // HP bar
             SizedBox(
               width: size + 4,
-              height: 3,
+              height: 3 * _uiScale,
               child: Stack(
                 children: [
                   Container(
@@ -650,7 +694,9 @@ class _TdGameScreenState extends State<TdGameScreen>
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: enemyFill,
+                color: _enemyImagePath(enemy, dungeon) != null
+                    ? Colors.transparent
+                    : enemyFill,
                 shape: enemy.isBoss ? BoxShape.rectangle : BoxShape.circle,
                 borderRadius: enemy.isBoss ? BorderRadius.circular(6) : null,
                 border: shieldBorder,
@@ -669,16 +715,53 @@ class _TdGameScreenState extends State<TdGameScreen>
                     ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
-                  color: Colors.white,
-                  size: enemy.isBoss ? 18 : 14,
-                ),
+              child: ClipRRect(
+                borderRadius: enemy.isBoss
+                    ? BorderRadius.circular(6)
+                    : BorderRadius.circular(size / 2),
+                child: _buildEnemyContent(enemy, dungeon, isBeingHit, size),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Get enemy image asset path from dungeon definition, or null if not set.
+  String? _enemyImagePath(TdEnemy enemy, TdDungeonDef dungeon) {
+    return enemy.isBoss ? dungeon.bossImage : dungeon.enemyImage;
+  }
+
+  /// Build enemy visual content — image asset if available, icon fallback.
+  Widget _buildEnemyContent(
+      TdEnemy enemy, TdDungeonDef dungeon, bool isBeingHit, double size) {
+    final imagePath = _enemyImagePath(enemy, dungeon);
+    if (imagePath != null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            imagePath,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _enemyIconFallback(enemy, dungeon),
+          ),
+          // Hit flash overlay
+          if (isBeingHit)
+            Container(color: Colors.white.withValues(alpha: 0.6)),
+        ],
+      );
+    }
+    return _enemyIconFallback(enemy, dungeon);
+  }
+
+  /// Fallback: original icon-based enemy rendering.
+  Widget _enemyIconFallback(TdEnemy enemy, TdDungeonDef dungeon) {
+    return Center(
+      child: Icon(
+        TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
+        color: Colors.white,
+        size: (enemy.isBoss ? 18 : 14) * _uiScale,
       ),
     );
   }
@@ -901,25 +984,27 @@ class _TdGameScreenState extends State<TdGameScreen>
 
       // Position tower at its slot: slotPosition maps 0.0-1.0 where
       // 0.0=spawn (right), 1.0=goal (left). Visual left = (1 - pos) * width.
-      final visualLeft = (1.0 - tower.slotPosition) * laneWidth - 20; // center the 44px tower
+      final scale = _uiScale;
+      final towerSize = 44 * scale;
+      final visualLeft = (1.0 - tower.slotPosition) * laneWidth - (20 * scale); // center the tower
 
       // Vertical stacking: spread towers evenly within the lane height
       double top;
       if (nInSlot == 1) {
-        top = (laneHeight - 40) / 2 - 6;
+        top = (laneHeight - 40 * scale) / 2 - 6;
       } else {
         // Distribute vertically with some padding
-        final totalHeight = nInSlot * 46.0;
+        final totalHeight = nInSlot * (46.0 * scale);
         final startY = (laneHeight - totalHeight) / 2;
-        top = startY + indexInSlot * 46.0;
+        top = startY + indexInSlot * (46.0 * scale);
       }
 
       final towerColor = tower.color;
 
       laneTowers.add(
         Positioned(
-          left: visualLeft.clamp(4, laneWidth - 44),
-          top: top.clamp(0, laneHeight - 50),
+          left: visualLeft.clamp(4, laneWidth - towerSize),
+          top: top.clamp(0, laneHeight - (50 * scale)),
           child: Draggable<int>(
             data: i,
             feedback: Material(
@@ -943,17 +1028,18 @@ class _TdGameScreenState extends State<TdGameScreen>
     final glowColor = isSupport ? tower.attackColor : towerColor;
     final isDebuffed = tower.isDebuffed;
 
+    final scale = _uiScale;
     return SizedBox(
-      width: 44,
-      height: 44,
+      width: 44 * scale,
+      height: 44 * scale,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Debuff red ring (behind the tower)
           if (isDebuffed)
             Container(
-              width: 44,
-              height: 44,
+              width: 44 * scale,
+              height: 44 * scale,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -971,8 +1057,8 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
           // Tower circle (always class-colored)
           Container(
-            width: 40,
-            height: 40,
+            width: 40 * scale,
+            height: 40 * scale,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -1000,15 +1086,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                       ? Image.asset(
                           tower.character.avatarUrl!.substring(6),
                           fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
+                          width: 40 * scale,
+                          height: 40 * scale,
                           errorBuilder: (_, __, ___) => _towerFallback(tower, towerColor),
                         )
                       : CachedNetworkImage(
                           imageUrl: tower.character.avatarUrl!,
                           fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
+                          width: 40 * scale,
+                          height: 40 * scale,
                           placeholder: (_, __) => _towerFallback(tower, towerColor),
                           errorWidget: (_, __, ___) => _towerFallback(tower, towerColor),
                         ))
@@ -1041,20 +1127,33 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _towerFallback(TdTower tower, Color towerColor) {
+    final classIcon = TdClassIcons.assetPath(tower.character.characterClass);
+    final scale = _uiScale;
     return Container(
-      width: 40,
-      height: 40,
+      width: 40 * scale,
+      height: 40 * scale,
       color: towerColor.withValues(alpha: 0.15),
-      child: Center(
-        child: Text(
-          tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
-          style: GoogleFonts.rajdhani(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: towerColor,
-          ),
-        ),
-      ),
+      child: classIcon != null
+          ? Image.asset(
+              classIcon,
+              width: 28 * scale, height: 28 * scale, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 18, fontWeight: FontWeight.w700, color: towerColor,
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: towerColor,
+                ),
+              ),
+            ),
     );
   }
 
@@ -1083,6 +1182,7 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildTowerInfoBar() {
+    final scale = _uiScale;
     return Container(
       color: AppTheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -1097,8 +1197,8 @@ class _TdGameScreenState extends State<TdGameScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 28 * scale,
+                  height: 28 * scale,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -1112,15 +1212,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                             ? Image.asset(
                                 tower.character.avatarUrl!.substring(6),
                                 fit: BoxFit.cover,
-                                width: 28,
-                                height: 28,
+                                width: 28 * scale,
+                                height: 28 * scale,
                                 errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
                               )
                             : CachedNetworkImage(
                                 imageUrl: tower.character.avatarUrl!,
                                 fit: BoxFit.cover,
-                                width: 28,
-                                height: 28,
+                                width: 28 * scale,
+                                height: 28 * scale,
                                 placeholder: (_, __) => _infoBarFallback(tower, towerColor),
                                 errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
                               ))
@@ -1156,20 +1256,63 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _infoBarFallback(TdTower tower, Color towerColor) {
+    final classIcon = TdClassIcons.assetPath(tower.character.characterClass);
+    final scale = _uiScale;
     return Container(
-      width: 28,
-      height: 28,
+      width: 28 * scale,
+      height: 28 * scale,
       color: towerColor.withValues(alpha: 0.15),
-      child: Center(
-        child: Text(
-          tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
-          style: GoogleFonts.rajdhani(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: towerColor,
-          ),
-        ),
-      ),
+      child: classIcon != null
+          ? Image.asset(
+              classIcon,
+              width: 20 * scale, height: 20 * scale, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Center(
+                child: Text(
+                  tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 13, fontWeight: FontWeight.w700, color: towerColor,
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: towerColor,
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _dialogAvatarFallback(WowCharacter character, Color classColor, double size) {
+    final classIcon = TdClassIcons.assetPath(character.characterClass);
+    return Container(
+      width: size,
+      height: size,
+      color: classColor.withValues(alpha: 0.15),
+      child: classIcon != null
+          ? Center(
+              child: Image.asset(
+                classIcon,
+                width: size * 0.6, height: size * 0.6, fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
+                  character.name.isNotEmpty ? character.name[0].toUpperCase() : '?',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: size * 0.45, fontWeight: FontWeight.w700, color: classColor,
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                character.name.isNotEmpty ? character.name[0].toUpperCase() : '?',
+                style: GoogleFonts.rajdhani(
+                  fontSize: size * 0.45, fontWeight: FontWeight.w700, color: classColor,
+                ),
+              ),
+            ),
     );
   }
 
@@ -1322,13 +1465,39 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
           ),
           const SizedBox(width: 10),
+          if (isBossWave && _game.keystone.dungeon.bossImage != null) ...[
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: _game.keystone.dungeon.bossColor.withValues(alpha: 0.5),
+                  width: 1.5,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: Image.asset(
+                  _game.keystone.dungeon.bossImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Text(
               isBossWave
                   ? 'Next: BOSS WAVE${_game.keystone.hasTyrannical ? " (Tyrannical!)" : ""}'
                   : 'Next: 5–8 enemies${_game.keystone.hasFortified ? " (Fortified)" : ""}',
               style: GoogleFonts.inter(
-                fontSize: 11, color: AppTheme.textSecondary,
+                fontSize: 11,
+                color: isBossWave
+                    ? _game.keystone.dungeon.bossColor
+                    : AppTheme.textSecondary,
+                fontWeight: isBossWave ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ),
@@ -1355,11 +1524,12 @@ class _TdGameScreenState extends State<TdGameScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: _game.towers.map((tower) {
               final towerColor = tower.color;
+              final scale = _uiScale;
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 28, height: 28,
+                    width: 28 * scale, height: 28 * scale,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: towerColor.withValues(alpha: 0.5), width: 1.5),
@@ -1369,12 +1539,12 @@ class _TdGameScreenState extends State<TdGameScreen>
                           ? (tower.character.avatarUrl!.startsWith('asset:')
                               ? Image.asset(
                                   tower.character.avatarUrl!.substring(6),
-                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  fit: BoxFit.cover, width: 28 * scale, height: 28 * scale,
                                   errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
                                 )
                               : CachedNetworkImage(
                                   imageUrl: tower.character.avatarUrl!,
-                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  fit: BoxFit.cover, width: 28 * scale, height: 28 * scale,
                                   placeholder: (_, __) => _infoBarFallback(tower, towerColor),
                                   errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
                                 ))
@@ -1433,78 +1603,122 @@ class _TdGameScreenState extends State<TdGameScreen>
             : const Color(0xFFCD7F32); // bronze
 
     return Positioned.fill(
-      child: Container(
-        color: AppTheme.background.withValues(alpha: 0.85),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Star rating
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(3, (i) => Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: i < stars ? starColor : AppTheme.textTertiary,
-                    size: 36,
-                  ),
-                )),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                stars == 3 ? 'FLAWLESS' : stars == 2 ? 'CLEAN RUN' : 'KEYSTONE COMPLETE',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: starColor,
-                  letterSpacing: 2,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Boss art background
+          if (_game.keystone.dungeon.bossImage != null)
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.30,
+                child: Image.asset(
+                  _game.keystone.dungeon.bossImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.lives}/${_game.maxLives} lives',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
+            ),
+          // Golden vignette overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    AppTheme.background.withValues(alpha: 0.6),
+                    AppTheme.background.withValues(alpha: 0.85),
+                    AppTheme.background.withValues(alpha: 0.95),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
-              const SizedBox(height: 6),
-              // Keystone change
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF00FF98).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'KEYSTONE +$stars \u2192 Level $nextLevel',
-                  style: GoogleFonts.rajdhani(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF00FF98),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
-                  const SizedBox(width: 16),
-                  _buildPurpleButton(
-                    'NEXT: +$nextLevel',
-                    onTap: () => Navigator.of(context).pop((
-                      cleared: true,
-                      lives: _game.lives,
-                      stars: _game.starRating,
-                    )),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+          // Golden glow vignette
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFFD700).withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.7],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Star rating
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(3, (i) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Icon(
+                      i < stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: i < stars ? starColor : AppTheme.textTertiary,
+                      size: 36,
+                    ),
+                  )),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  stars == 3 ? 'FLAWLESS' : stars == 2 ? 'CLEAN RUN' : 'KEYSTONE COMPLETE',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: starColor,
+                    letterSpacing: 2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '+${widget.keystoneLevel} \u2022 ${_game.enemiesKilled} kills \u2022 ${_game.lives}/${_game.maxLives} lives',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Keystone change
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00FF98).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'KEYSTONE +$stars \u2192 Level $nextLevel',
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF00FF98),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
+                    const SizedBox(width: 16),
+                    _buildPurpleButton(
+                      'NEXT: +$nextLevel',
+                      onTap: () => Navigator.of(context).pop((
+                        cleared: true,
+                        lives: _game.lives,
+                        stars: _game.starRating,
+                      )),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1514,68 +1728,112 @@ class _TdGameScreenState extends State<TdGameScreen>
     final depleted = widget.keystoneLevel > 2;
 
     return Positioned.fill(
-      child: Container(
-        color: AppTheme.background.withValues(alpha: 0.85),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.close, color: Color(0xFFFF5E5B), size: 48),
-              const SizedBox(height: 12),
-              Text(
-                'DEPLETED',
-                style: GoogleFonts.rajdhani(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFFFF5E5B),
-                  letterSpacing: 2,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Boss art background
+          if (_game.keystone.dungeon.bossImage != null)
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.20,
+                child: Image.asset(
+                  _game.keystone.dungeon.bossImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                '${_game.enemiesKilled} kills \u2022 Wave ${_game.currentWave}/${_game.totalWaves}',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
+            ),
+          // Red-tinted vignette overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    AppTheme.background.withValues(alpha: 0.6),
+                    AppTheme.background.withValues(alpha: 0.85),
+                    AppTheme.background.withValues(alpha: 0.95),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
-              if (depleted) ...[
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF5E5B).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          // Red glow vignette
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.transparent,
+                    const Color(0xFFFF5E5B).withValues(alpha: 0.06),
+                  ],
+                  stops: const [0.3, 1.0],
+                ),
+              ),
+            ),
+          ),
+          // Content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.close, color: Color(0xFFFF5E5B), size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  'DEPLETED',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFFFF5E5B),
+                    letterSpacing: 2,
                   ),
-                  child: Text(
-                    'KEYSTONE -1 \u2192 Level $nextLevel',
-                    style: GoogleFonts.rajdhani(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFFFF5E5B),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${_game.enemiesKilled} kills \u2022 Wave ${_game.currentWave}/${_game.totalWaves}',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+                if (depleted) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5E5B).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'KEYSTONE -1 \u2192 Level $nextLevel',
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFFF5E5B),
+                      ),
                     ),
                   ),
+                ],
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
+                    const SizedBox(width: 16),
+                    _buildPurpleButton(
+                      'RETRY +$nextLevel',
+                      onTap: () => Navigator.of(context).pop((
+                        cleared: false,
+                        lives: 0,
+                        stars: 0,
+                      )),
+                    ),
+                  ],
                 ),
               ],
-              const SizedBox(height: 24),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildOutlinedButton('BACK', onTap: () => Navigator.of(context).pop()),
-                  const SizedBox(width: 16),
-                  _buildPurpleButton(
-                    'RETRY +$nextLevel',
-                    onTap: () => Navigator.of(context).pop((
-                      cleared: false,
-                      lives: 0,
-                      stars: 0,
-                    )),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1638,6 +1896,7 @@ class _TdGameScreenState extends State<TdGameScreen>
 
   void _showTowerInfo(TdTower tower) {
     final classColor = tower.color;
+    final avatarSize = 48 * _uiScale;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceElevated,
@@ -1662,7 +1921,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             Row(
               children: [
                 Container(
-                  width: 48, height: 48,
+                  width: avatarSize, height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: classColor, width: 2),
@@ -1672,34 +1931,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                         ? (tower.character.avatarUrl!.startsWith('asset:')
                             ? Image.asset(
                                 tower.character.avatarUrl!.substring(6),
-                                fit: BoxFit.cover, width: 48, height: 48,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: classColor.withValues(alpha: 0.15),
-                                  child: Center(
-                                    child: Text(
-                                      tower.character.name[0].toUpperCase(),
-                                      style: GoogleFonts.rajdhani(
-                                        fontSize: 22, fontWeight: FontWeight.w700, color: classColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                fit: BoxFit.cover, width: avatarSize, height: avatarSize,
+                                errorBuilder: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, avatarSize),
                               )
                             : CachedNetworkImage(
                                 imageUrl: tower.character.avatarUrl!,
-                                fit: BoxFit.cover, width: 48, height: 48,
+                                fit: BoxFit.cover, width: avatarSize, height: avatarSize,
+                                errorWidget: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, avatarSize),
                               ))
-                        : Container(
-                            color: classColor.withValues(alpha: 0.15),
-                            child: Center(
-                              child: Text(
-                                tower.character.name[0].toUpperCase(),
-                                style: GoogleFonts.rajdhani(
-                                  fontSize: 22, fontWeight: FontWeight.w700, color: classColor,
-                                ),
-                              ),
-                            ),
-                          ),
+                        : _dialogAvatarFallback(tower.character, classColor, avatarSize),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -2050,4 +2290,194 @@ class _TdGameScreenState extends State<TdGameScreen>
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Particle overlay widget — atmospheric particles driven by ParticleDef
+// ---------------------------------------------------------------------------
+
+class _Particle {
+  double x, y, dx, dy, size, opacity, life, maxLife;
+  _Particle({
+    required this.x, required this.y,
+    required this.dx, required this.dy,
+    required this.size, required this.opacity,
+    this.life = 0, this.maxLife = 0,
+  });
+}
+
+class _TdParticleOverlay extends StatefulWidget {
+  final ParticleDef config;
+  const _TdParticleOverlay({required this.config});
+
+  @override
+  State<_TdParticleOverlay> createState() => _TdParticleOverlayState();
+}
+
+class _TdParticleOverlayState extends State<_TdParticleOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<_Particle> _particles = [];
+  final Random _rng = Random();
+  Duration _lastElapsed = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat();
+    _controller.addListener(_onTick);
+  }
+
+  void _initParticles(Size size) {
+    _particles.clear();
+    for (var i = 0; i < widget.config.count; i++) {
+      _particles.add(_spawnParticle(size, randomY: true));
+    }
+  }
+
+  _Particle _spawnParticle(Size size, {bool randomY = true}) {
+    final cfg = widget.config;
+    final type = cfg.type;
+    double x = _rng.nextDouble() * size.width;
+    double y = randomY ? _rng.nextDouble() * size.height : -cfg.size;
+    double dx = 0, dy = 0;
+    double pSize = cfg.size * (0.5 + _rng.nextDouble());
+    double pOpacity = cfg.opacity * (0.5 + _rng.nextDouble() * 0.5);
+    double maxLife = 0;
+
+    switch (type) {
+      case 'wisps':
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 30;
+        dy = -cfg.speed * 20 * (0.5 + _rng.nextDouble() * 0.5);
+      case 'snow':
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 15;
+        dy = cfg.speed * 40 * (0.5 + _rng.nextDouble() * 0.5);
+        if (!randomY) y = -cfg.size;
+      case 'embers':
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 20;
+        dy = -cfg.speed * 60 * (0.5 + _rng.nextDouble() * 0.5);
+      case 'void':
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 5;
+        dy = (_rng.nextDouble() - 0.5) * cfg.speed * 5;
+      case 'wind':
+        dx = cfg.speed * 100 * (0.7 + _rng.nextDouble() * 0.3);
+        dy = (_rng.nextDouble() - 0.5) * cfg.speed * 10;
+        pSize = cfg.size * (0.3 + _rng.nextDouble() * 0.3);
+        if (!randomY) x = -cfg.size * 3;
+      case 'leaves':
+        dx = cfg.speed * 30 * (0.5 + _rng.nextDouble() * 0.5);
+        dy = cfg.speed * 30 * (0.5 + _rng.nextDouble() * 0.5);
+        if (!randomY) { x = -cfg.size; y = _rng.nextDouble() * size.height * 0.3; }
+      case 'sparks':
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 80;
+        dy = (_rng.nextDouble() - 0.5) * cfg.speed * 80;
+        maxLife = 0.5 + _rng.nextDouble() * 0.5;
+      default:
+        dx = (_rng.nextDouble() - 0.5) * cfg.speed * 20;
+        dy = -cfg.speed * 20;
+    }
+
+    return _Particle(
+      x: x, y: y, dx: dx, dy: dy,
+      size: pSize, opacity: pOpacity,
+      life: 0, maxLife: maxLife,
+    );
+  }
+
+  void _onTick() {
+    if (!mounted) return;
+    final now = _controller.lastElapsedDuration ?? Duration.zero;
+    final dt = (now - _lastElapsed).inMicroseconds / 1e6;
+    _lastElapsed = now;
+    if (dt <= 0 || dt > 0.5) return;
+
+    final ctx = context;
+    final renderBox = ctx.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) return;
+    final size = renderBox.size;
+
+    if (_particles.isEmpty) {
+      _initParticles(size);
+      return;
+    }
+
+    final type = widget.config.type;
+    for (var i = 0; i < _particles.length; i++) {
+      final p = _particles[i];
+      p.x += p.dx * dt;
+      p.y += p.dy * dt;
+      p.life += dt;
+
+      // Type-specific behaviors
+      switch (type) {
+        case 'wisps':
+          p.dx += ((_rng.nextDouble() - 0.5) * 10) * dt;
+          p.opacity = widget.config.opacity * (0.3 + 0.7 * (0.5 + 0.5 * sin(p.life * 2)));
+        case 'snow':
+          p.dx = sin(p.life * 1.5 + i.toDouble()) * widget.config.speed * 15;
+        case 'embers':
+          p.opacity = widget.config.opacity * (0.3 + 0.7 * (0.5 + 0.5 * sin(p.life * 5)));
+        case 'void':
+          p.size = widget.config.size * (0.5 + 0.5 * sin(p.life * 2 + i.toDouble()));
+        case 'leaves':
+          p.dx += sin(p.life * 2) * widget.config.speed * 5 * dt;
+        default:
+          break;
+      }
+
+      // Wrap or respawn
+      bool needsRespawn = false;
+      if (type == 'sparks' && p.maxLife > 0 && p.life >= p.maxLife) {
+        needsRespawn = true;
+      } else if (p.x < -20 || p.x > size.width + 20 ||
+          p.y < -20 || p.y > size.height + 20) {
+        needsRespawn = true;
+      }
+
+      if (needsRespawn) {
+        _particles[i] = _spawnParticle(size, randomY: false);
+      }
+    }
+
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _ParticlePainter(
+        particles: _particles,
+        color: widget.config.color,
+      ),
+    );
+  }
+}
+
+class _ParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+  final Color color;
+
+  _ParticlePainter({required this.particles, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final paint = Paint()
+        ..color = color.withValues(alpha: p.opacity.clamp(0.0, 1.0))
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(p.x, p.y), p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
 }

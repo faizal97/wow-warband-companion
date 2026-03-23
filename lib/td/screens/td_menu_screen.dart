@@ -345,10 +345,18 @@ class _TdMenuScreenState extends State<TdMenuScreen>
                   ],
                 ),
                 child: Center(
-                  child: Icon(
-                    Icons.diamond_rounded,
-                    color: const Color(0xFFA335EE).withValues(alpha: 0.9),
-                    size: 36,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/td/icons/keystone.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.diamond_rounded,
+                        color: const Color(0xFFA335EE).withValues(alpha: 0.9),
+                        size: 36,
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -792,6 +800,7 @@ class _CharacterPickerCard extends StatelessWidget {
   }
 
   Widget _avatarFallback(Color classColor) {
+    final classIcon = TdClassIcons.assetPath(character.characterClass);
     return Container(
       width: 42,
       height: 42,
@@ -803,16 +812,27 @@ class _CharacterPickerCard extends StatelessWidget {
           width: 1,
         ),
       ),
-      child: Center(
-        child: Text(
-          character.name.isNotEmpty ? character.name[0].toUpperCase() : '?',
-          style: GoogleFonts.rajdhani(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: classColor,
-          ),
-        ),
-      ),
+      child: classIcon != null
+          ? Center(
+              child: Image.asset(
+                classIcon,
+                width: 28, height: 28, fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Text(
+                  character.name.isNotEmpty ? character.name[0].toUpperCase() : '?',
+                  style: GoogleFonts.rajdhani(
+                    fontSize: 18, fontWeight: FontWeight.w700, color: classColor,
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                character.name.isNotEmpty ? character.name[0].toUpperCase() : '?',
+                style: GoogleFonts.rajdhani(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: classColor,
+                ),
+              ),
+            ),
     );
   }
 }

@@ -375,6 +375,22 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
   }
 
   // -----------------------------------------------------------------------
+  // Class icon fallback helper
+  // -----------------------------------------------------------------------
+
+  Widget _classIconOrPerson(WowCharacter character, Color classColor, double size) {
+    final classIcon = TdClassIcons.assetPath(character.characterClass);
+    if (classIcon != null) {
+      return Image.asset(
+        classIcon,
+        width: size * 0.7, height: size * 0.7, fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(Icons.person, color: classColor, size: size),
+      );
+    }
+    return Icon(Icons.person, color: classColor, size: size);
+  }
+
+  // -----------------------------------------------------------------------
   // Filter chip
   // -----------------------------------------------------------------------
 
@@ -469,21 +485,21 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                               width: 36, height: 36, fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                   color: classColor.withValues(alpha: 0.2),
-                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                                  child: _classIconOrPerson(character, classColor, 18)),
                             )
                           : CachedNetworkImage(
                               imageUrl: character.avatarUrl!,
                               width: 36, height: 36, fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
                                   color: classColor.withValues(alpha: 0.2),
-                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                                  child: _classIconOrPerson(character, classColor, 18)),
                               errorWidget: (_, __, ___) => Container(
                                   color: classColor.withValues(alpha: 0.2),
-                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                                  child: _classIconOrPerson(character, classColor, 18)),
                             ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
-                          child: Icon(Icons.person, color: classColor, size: 18)),
+                          child: _classIconOrPerson(character, classColor, 18)),
                 ),
               ),
               const SizedBox(width: 10),
@@ -610,8 +626,7 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person,
-                                    color: classColor, size: 24),
+                                child: _classIconOrPerson(character, classColor, 24),
                               ),
                             )
                           : CachedNetworkImage(
@@ -621,19 +636,16 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person,
-                                    color: classColor, size: 24),
+                                child: _classIconOrPerson(character, classColor, 24),
                               ),
                               errorWidget: (_, __, ___) => Container(
                                 color: classColor.withValues(alpha: 0.2),
-                                child: Icon(Icons.person,
-                                    color: classColor, size: 24),
+                                child: _classIconOrPerson(character, classColor, 24),
                               ),
                             ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
-                          child: Icon(Icons.person,
-                              color: classColor, size: 24),
+                          child: _classIconOrPerson(character, classColor, 24),
                         ),
                 ),
               ),
@@ -735,7 +747,7 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                                 width: 52, height: 52, fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
                                   color: classColor.withValues(alpha: 0.2),
-                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                  child: _classIconOrPerson(character, classColor, 26),
                                 ),
                               )
                             : CachedNetworkImage(
@@ -743,12 +755,12 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                                 width: 52, height: 52, fit: BoxFit.cover,
                                 errorWidget: (_, __, ___) => Container(
                                   color: classColor.withValues(alpha: 0.2),
-                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                  child: _classIconOrPerson(character, classColor, 26),
                                 ),
                               ))
                         : Container(
                             color: classColor.withValues(alpha: 0.2),
-                            child: Icon(Icons.person, color: classColor, size: 26),
+                            child: _classIconOrPerson(character, classColor, 26),
                           ),
                   ),
                 ),

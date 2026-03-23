@@ -176,6 +176,40 @@ class LanePatternDef {
 }
 
 // ---------------------------------------------------------------------------
+// ParticleDef — particle effect config from dungeons.json
+// ---------------------------------------------------------------------------
+
+/// Particle effect config from dungeons.json.
+class ParticleDef {
+  final String type; // wisps, snow, embers, void, wind, leaves, sparks
+  final Color color;
+  final int count;
+  final double speed;
+  final double size;
+  final double opacity;
+
+  const ParticleDef({
+    this.type = 'wisps',
+    this.color = const Color(0xFFFFFFFF),
+    this.count = 10,
+    this.speed = 0.3,
+    this.size = 3.0,
+    this.opacity = 0.2,
+  });
+
+  factory ParticleDef.fromJson(Map<String, dynamic> json) {
+    return ParticleDef(
+      type: json['type'] as String? ?? 'wisps',
+      color: _parseColor(json['color'] as String?),
+      count: (json['count'] as num?)?.toInt() ?? 10,
+      speed: (json['speed'] as num?)?.toDouble() ?? 0.3,
+      size: (json['size'] as num?)?.toDouble() ?? 3.0,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 0.2,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // TdDungeonDef — a dungeon definition from dungeons.json
 // ---------------------------------------------------------------------------
 
@@ -189,12 +223,16 @@ class TdDungeonDef {
   final Color bossColor;
   final String enemyIcon;
   final String bossIcon;
+  final String? enemyImage;
+  final String? bossImage;
+  final String? backgroundImage;
   final double hpMultiplier;
   final double speedMultiplier;
   final int enemyCountModifier;
   final LanePatternDef lanePattern;
   final List<EffectDef> enemyModifiers;
   final List<EffectDef> bossModifiers;
+  final ParticleDef? particles;
 
   /// Level-based modifier overrides. Keys are keystone levels (as strings).
   /// At spawn, the game picks the highest tier <= current keystoneLevel.
@@ -209,12 +247,16 @@ class TdDungeonDef {
     this.bossColor = const Color(0xFFFF4444),
     this.enemyIcon = 'skull',
     this.bossIcon = 'skull',
+    this.enemyImage,
+    this.bossImage,
+    this.backgroundImage,
     this.hpMultiplier = 1.0,
     this.speedMultiplier = 1.0,
     this.enemyCountModifier = 0,
     this.lanePattern = const LanePatternDef(type: 'spread'),
     this.enemyModifiers = const [],
     this.bossModifiers = const [],
+    this.particles,
     this.modifierScaling = const {},
   });
 
@@ -256,6 +298,9 @@ class TdDungeonDef {
       bossColor: _parseColor((json['bossColor'] ?? json['boss_color']) as String?),
       enemyIcon: (json['enemyIcon'] ?? json['enemy_icon']) as String? ?? 'skull',
       bossIcon: (json['bossIcon'] ?? json['boss_icon']) as String? ?? 'skull',
+      enemyImage: (json['enemyImage'] ?? json['enemy_image']) as String?,
+      bossImage: (json['bossImage'] ?? json['boss_image']) as String?,
+      backgroundImage: (json['backgroundImage'] ?? json['background_image']) as String?,
       hpMultiplier: ((json['hpMultiplier'] ?? json['hp_multiplier']) as num?)?.toDouble() ?? 1.0,
       speedMultiplier: ((json['speedMultiplier'] ?? json['speed_multiplier']) as num?)?.toDouble() ?? 1.0,
       enemyCountModifier: ((json['enemyCountModifier'] ?? json['enemy_count_modifier']) as num?)?.toInt() ?? 0,
@@ -264,6 +309,9 @@ class TdDungeonDef {
           : const LanePatternDef(type: 'spread'),
       enemyModifiers: _parseEffectList(json['enemyModifiers'] ?? json['enemy_modifiers']),
       bossModifiers: _parseEffectList(json['bossModifiers'] ?? json['boss_modifiers']),
+      particles: json['particles'] != null
+          ? ParticleDef.fromJson(Map<String, dynamic>.from(json['particles'] as Map))
+          : null,
       modifierScaling: _parseModifierScaling(json['modifierScaling']),
     );
   }
@@ -352,6 +400,39 @@ class TdIcons {
   /// Look up an icon by name. Returns a question-mark icon as fallback.
   static IconData getIcon(String name) {
     return iconMap[name.toLowerCase().trim()] ?? Icons.help_outline_rounded;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Class icon mapping utility
+// ---------------------------------------------------------------------------
+
+/// Maps WoW class names to their icon asset paths.
+class TdClassIcons {
+  TdClassIcons._();
+
+  static const Map<String, String> _classFileMap = {
+    'warrior': 'warrior',
+    'rogue': 'rogue',
+    'death knight': 'deathknight',
+    'paladin': 'paladin',
+    'monk': 'monk',
+    'demon hunter': 'demon_hunter',
+    'mage': 'mage',
+    'hunter': 'hunter',
+    'warlock': 'warlock',
+    'evoker': 'evoker',
+    'priest': 'priest',
+    'druid': 'druid',
+    'shaman': 'shaman',
+  };
+
+  /// Get the asset path for a WoW class icon.
+  /// Returns null if the class is not recognized.
+  static String? assetPath(String className) {
+    final filename = _classFileMap[className.toLowerCase().trim()];
+    if (filename == null) return null;
+    return 'assets/td/icons/classes/$filename.png';
   }
 }
 

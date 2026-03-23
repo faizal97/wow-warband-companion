@@ -54,12 +54,33 @@ class TdDungeonBriefingScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+      body: Stack(
         children: [
-          // Section 1: Header
-          _buildHeader(),
-          const SizedBox(height: 24),
+          // Full-screen dungeon background
+          if (dungeon.backgroundImage != null) ...[
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.15,
+                child: Image.asset(
+                  dungeon.backgroundImage!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.3),
+              ),
+            ),
+          ],
+          // Scrollable content
+          ListView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+            children: [
+              // Section 1: Header
+              _buildHeaderCompact(),
+              const SizedBox(height: 24),
 
           // Section 2: Enemy Intel
           _buildSectionHeader('ENEMY INTEL', Icons.groups_rounded),
@@ -84,17 +105,15 @@ class TdDungeonBriefingScreen extends StatelessWidget {
           // Section 5: Strategy Tips
           _buildSectionHeader('STRATEGY TIPS', Icons.lightbulb_outline_rounded),
           const SizedBox(height: 12),
-          _buildStrategyTips(),
+              _buildStrategyTips(),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Section 1: Header
-  // -------------------------------------------------------------------------
-
-  Widget _buildHeader() {
+  Widget _buildHeaderCompact() {
     return Column(
       children: [
         // Dungeon icon
@@ -115,11 +134,23 @@ class TdDungeonBriefingScreen extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            TdIcons.getIcon(dungeon.bossIcon),
-            color: dungeon.bossColor.withValues(alpha: 0.9),
-            size: 26,
-          ),
+          child: dungeon.bossImage != null
+              ? ClipOval(
+                  child: Image.asset(
+                    dungeon.bossImage!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Icon(
+                      TdIcons.getIcon(dungeon.bossIcon),
+                      color: dungeon.bossColor.withValues(alpha: 0.9),
+                      size: 26,
+                    ),
+                  ),
+                )
+              : Icon(
+                  TdIcons.getIcon(dungeon.bossIcon),
+                  color: dungeon.bossColor.withValues(alpha: 0.9),
+                  size: 26,
+                ),
         ),
         const SizedBox(height: 14),
         Text(
