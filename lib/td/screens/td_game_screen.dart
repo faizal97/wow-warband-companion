@@ -7,6 +7,7 @@ import '../../models/character.dart';
 import '../../theme/app_theme.dart';
 import '../data/effect_types.dart';
 import '../data/td_class_registry.dart';
+import '../data/td_hero_registry.dart';
 import '../data/td_run_state.dart';
 import '../models/td_models.dart';
 import '../td_game_state.dart';
@@ -21,6 +22,7 @@ class TdGameScreen extends StatefulWidget {
   final int keystoneLevel;
   final TdDungeonDef dungeon;
   final TdClassRegistry classRegistry;
+  final TdHeroRegistry? heroRegistry;
   final List<TdDungeonDef> dungeons; // rotation pool for roulette on victory
   final TdRunState? runState;
 
@@ -30,6 +32,7 @@ class TdGameScreen extends StatefulWidget {
     required this.keystoneLevel,
     required this.dungeon,
     required this.classRegistry,
+    this.heroRegistry,
     required this.dungeons,
     this.runState,
   });
@@ -54,7 +57,7 @@ class _TdGameScreenState extends State<TdGameScreen>
     _game = TdGameState();
     _game.startRun(widget.characters, widget.keystoneLevel,
         dungeon: widget.dungeon, classRegistry: widget.classRegistry,
-        runState: widget.runState);
+        heroRegistry: widget.heroRegistry, runState: widget.runState);
     _game.addListener(_onGameStateChanged);
     // Don't auto-start — let the player position towers first
     _ticker = createTicker(_onTick);

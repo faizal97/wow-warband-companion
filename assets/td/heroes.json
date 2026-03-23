@@ -1,0 +1,208 @@
+{
+  "_version": 1,
+  "heroes": [
+    {
+      "id": 9001,
+      "name": "Varian Wrynn",
+      "class": "Warrior",
+      "spec": "Arms",
+      "race": "Human",
+      "faction": "Alliance",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/varian_wrynn.jpg",
+      "passive": {
+        "name": "Shalamayne's Edge",
+        "description": "Splits his legendary blade — attacks hit 2 additional enemies.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 2 }]
+      },
+      "empoweredPassive": {
+        "name": "High King's Fury",
+        "description": "Shalamayne cleaves through 3 additional enemies.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "extra_targets", "value": 3 }]
+      }
+    },
+    {
+      "id": 9002,
+      "name": "Illidan Stormrage",
+      "class": "Demon Hunter",
+      "spec": "Havoc",
+      "race": "Night Elf",
+      "faction": "Alliance",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/illidan_stormrage.jpg",
+      "passive": {
+        "name": "Metamorphosis",
+        "description": "Every 3rd attack deals 4x damage and strikes across all lanes.",
+        "trigger": "on_nth_attack", "nth": 3,
+        "effects": [
+          { "type": "damage_multiplier", "value": 4.0 },
+          { "type": "cross_lane_attack", "value": 2 }
+        ]
+      },
+      "empoweredPassive": {
+        "name": "You Are Not Prepared",
+        "description": "Every 3rd attack deals 5x damage across all lanes.",
+        "trigger": "on_nth_attack", "nth": 3,
+        "effects": [
+          { "type": "damage_multiplier", "value": 5.0 },
+          { "type": "cross_lane_attack", "value": 2 }
+        ]
+      }
+    },
+    {
+      "id": 9003,
+      "name": "Jaina Proudmoore",
+      "class": "Mage",
+      "spec": "Frost",
+      "race": "Human",
+      "faction": "Alliance",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/jaina_proudmoore.jpg",
+      "passive": {
+        "name": "Flash Freeze",
+        "description": "Attacks slow enemies by 50% for 3s and have 30% chance to crit for 2x damage.",
+        "trigger": "on_attack",
+        "effects": [
+          { "type": "slow_enemy", "value": 0.5, "duration": 3.0 },
+          { "type": "crit_chance", "chance": 0.3, "multiplier": 2.0 }
+        ]
+      },
+      "empoweredPassive": {
+        "name": "Ice Block",
+        "description": "Attacks slow enemies by 60% for 3.5s and have 35% chance to crit for 2.5x.",
+        "trigger": "on_attack",
+        "effects": [
+          { "type": "slow_enemy", "value": 0.6, "duration": 3.5 },
+          { "type": "crit_chance", "chance": 0.35, "multiplier": 2.5 }
+        ]
+      }
+    },
+    {
+      "id": 9004,
+      "name": "Sylvanas Windrunner",
+      "class": "Hunter",
+      "spec": "Marksmanship",
+      "race": "Undead",
+      "faction": "Horde",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/sylvanas_windrunner.jpg",
+      "passive": {
+        "name": "Wailing Arrow",
+        "description": "Every 5th attack unleashes a banshee arrow dealing 5x damage to all enemies in lane.",
+        "trigger": "on_nth_attack", "nth": 5,
+        "effects": [
+          { "type": "damage_multiplier", "value": 5.0 },
+          { "type": "extra_targets", "value": 99 }
+        ]
+      },
+      "empoweredPassive": {
+        "name": "Black Arrow",
+        "description": "Every 4th attack deals 5x damage to all enemies and applies a DoT.",
+        "trigger": "on_nth_attack", "nth": 4,
+        "effects": [
+          { "type": "damage_multiplier", "value": 5.0 },
+          { "type": "extra_targets", "value": 99 },
+          { "type": "dot", "damageType": "percentDamage", "value": 0.3, "duration": 3.0, "ticks": 3 }
+        ]
+      }
+    },
+    {
+      "id": 9005,
+      "name": "Anduin Wrynn",
+      "class": "Priest",
+      "spec": "Holy",
+      "race": "Human",
+      "faction": "Alliance",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/anduin_wrynn.jpg",
+      "passive": {
+        "name": "Mass Fortitude",
+        "description": "The Light empowers adjacent towers, increasing their damage by 50%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_damage", "value": 0.5 }]
+      },
+      "empoweredPassive": {
+        "name": "Mass Resurrection",
+        "description": "Holy power increases adjacent tower damage by 65%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_damage", "value": 0.65 }]
+      }
+    },
+    {
+      "id": 9006,
+      "name": "Malfurion Stormrage",
+      "class": "Druid",
+      "spec": "Restoration",
+      "race": "Night Elf",
+      "faction": "Alliance",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/malfurion_stormrage.jpg",
+      "passive": {
+        "name": "Cenarius's Blessing",
+        "description": "Nature magic increases attack speed of adjacent towers by 40%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_speed", "value": 0.4 }]
+      },
+      "empoweredPassive": {
+        "name": "Tranquility",
+        "description": "Deep nature magic increases adjacent tower attack speed by 55%.",
+        "trigger": "passive",
+        "effects": [{ "type": "buff_adjacent_speed", "value": 0.55 }]
+      }
+    },
+    {
+      "id": 9007,
+      "name": "Thrall",
+      "class": "Shaman",
+      "spec": "Elemental",
+      "race": "Orc",
+      "faction": "Horde",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/thrall.jpg",
+      "passive": {
+        "name": "Doomhammer",
+        "description": "Chain lightning bounces to 5 enemies with less damage falloff.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "chain_damage", "bounces": [1.0, 0.9, 0.8, 0.7, 0.6] }]
+      },
+      "empoweredPassive": {
+        "name": "Earth Warder",
+        "description": "Elemental fury bounces to 6 enemies with minimal falloff.",
+        "trigger": "on_attack",
+        "effects": [{ "type": "chain_damage", "bounces": [1.0, 0.95, 0.9, 0.85, 0.8, 0.75] }]
+      }
+    },
+    {
+      "id": 9008,
+      "name": "Kael'thas Sunstrider",
+      "class": "Mage",
+      "spec": "Fire",
+      "race": "Blood Elf",
+      "faction": "Horde",
+      "level": 90,
+      "itemLevel": 250,
+      "avatar": "assets/td/heroes/kaelthas_sunstrider.jpg",
+      "passive": {
+        "name": "Pyroblast",
+        "description": "Charges for 2.5s then unleashes a devastating 8x damage blast.",
+        "trigger": "passive",
+        "effects": [{ "type": "charge_attack", "chargeTime": 2.5, "multiplier": 8.0 }]
+      },
+      "empoweredPassive": {
+        "name": "Verdant Spheres",
+        "description": "Charges for 2s then unleashes a 10x damage blast.",
+        "trigger": "passive",
+        "effects": [{ "type": "charge_attack", "chargeTime": 2.0, "multiplier": 10.0 }]
+      }
+    }
+  ]
+}

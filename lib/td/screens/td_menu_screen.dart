@@ -10,6 +10,7 @@ import '../data/effect_types.dart';
 import '../data/td_balance_config.dart';
 import '../data/td_class_registry.dart';
 import '../data/td_dungeon_registry.dart';
+import '../data/td_hero_registry.dart';
 import '../data/td_rotation.dart';
 import '../data/td_run_state.dart';
 import 'td_class_guide_screen.dart';
@@ -31,6 +32,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   late AnimationController _glowController;
 
   TdClassRegistry? _classRegistry;
+  TdHeroRegistry? _heroRegistry;
   TdRotation? _rotation;
   List<TdDungeonDef> _dungeons = [];
   bool _dataLoading = true;
@@ -54,17 +56,20 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   Future<void> _loadData() async {
     final classReg = TdClassRegistry();
     final dungeonReg = TdDungeonRegistry();
+    final heroReg = TdHeroRegistry();
     final rotation = TdRotation();
 
     await Future.wait([
       classReg.load(),
       dungeonReg.load(),
+      heroReg.load(),
       rotation.load(),
     ]);
 
     if (mounted) {
       setState(() {
         _classRegistry = classReg;
+        _heroRegistry = heroReg;
         _rotation = rotation;
         _dungeons = rotation.getDungeons(dungeonReg);
         _dataLoading = false;
@@ -81,8 +86,12 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   bool get _isGuestMode => widget.heroes != null;
 
   List<WowCharacter> _getActiveRoster(List<WowCharacter> warbandCharacters) {
-    if (widget.heroes != null) return widget.heroes!;
-    return _useHeroes ? WowCharacter.legendaryHeroes() : warbandCharacters;
+    if (widget.heroes != null) {
+      return _heroRegistry?.getHeroes() ?? widget.heroes!;
+    }
+    return _useHeroes
+        ? (_heroRegistry?.getHeroes() ?? WowCharacter.legendaryHeroes())
+        : warbandCharacters;
   }
 
   bool get _canStart => !_dataLoading;
@@ -128,6 +137,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           keystoneLevel: runState.keystoneLevel,
           maxTowers: runState.maxTowers(config),
           classRegistry: _classRegistry!,
+          heroRegistry: _heroRegistry,
         ),
       ),
     );
@@ -141,6 +151,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
             runState: runState,
             selectedCharacters: comp,
             classRegistry: _classRegistry!,
+            heroRegistry: _heroRegistry,
           ),
         ),
       );
@@ -156,6 +167,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           keystoneLevel: runState.keystoneLevel,
           dungeon: dungeon,
           classRegistry: _classRegistry!,
+          heroRegistry: _heroRegistry,
           dungeons: _dungeons,
           runState: runState,
         ),
@@ -231,6 +243,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
                             isSelected: false,
                             onTap: () {}, // read-only
                             classRegistry: _classRegistry,
+                            heroRegistry: _heroRegistry,
                           );
                         },
                         childCount: characters.length,
@@ -562,18 +575,23 @@ class _CharacterPickerCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final TdClassRegistry? classRegistry;
+  final TdHeroRegistry? heroRegistry;
 
   const _CharacterPickerCard({
     required this.character,
     required this.isSelected,
     required this.onTap,
     this.classRegistry,
+    this.heroRegistry,
   });
 
   @override
   Widget build(BuildContext context) {
     final classColor = WowClassColors.forClass(character.characterClass);
-    final classDef = classRegistry?.getClass(character.characterClass);
+    final classDef = (classRegistry != null
+            ? heroRegistry?.getHeroClassDef(character.name, classRegistry!)
+            : null) ??
+        classRegistry?.getClass(character.characterClass);
     final archetype = classDef?.archetype ?? TowerArchetype.melee;
     final archetypeLabel = archetype.name.toUpperCase();
 

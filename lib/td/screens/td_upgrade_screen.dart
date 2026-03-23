@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/wow_class_colors.dart';
 import '../data/td_balance_config.dart';
 import '../data/td_class_registry.dart';
+import '../data/td_hero_registry.dart';
 import '../data/td_run_state.dart';
 
 // ---------------------------------------------------------------------------
@@ -17,6 +18,7 @@ class TdUpgradeScreen extends StatefulWidget {
   final TdRunState runState;
   final List<WowCharacter> selectedCharacters;
   final TdClassRegistry classRegistry;
+  final TdHeroRegistry? heroRegistry;
   final TdBalanceConfig config;
 
   const TdUpgradeScreen({
@@ -24,6 +26,7 @@ class TdUpgradeScreen extends StatefulWidget {
     required this.runState,
     required this.selectedCharacters,
     required this.classRegistry,
+    this.heroRegistry,
     this.config = TdBalanceConfig.defaults,
   });
 
@@ -246,7 +249,9 @@ class _TdUpgradeScreenState extends State<TdUpgradeScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildTowerCard(WowCharacter character) {
-    final classDef = widget.classRegistry.getClass(character.characterClass);
+    final classDef = widget.heroRegistry?.getHeroClassDef(
+            character.name, widget.classRegistry) ??
+        widget.classRegistry.getClass(character.characterClass);
     final classColor = WowClassColors.forClass(character.characterClass);
     final upgrades =
         _run.getUpgrades(character.id) ?? TowerUpgrades();
