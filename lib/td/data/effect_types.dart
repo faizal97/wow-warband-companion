@@ -191,6 +191,7 @@ class TdDungeonDef {
   final String bossIcon;
   final String? enemyImage;
   final String? bossImage;
+  final String? backgroundImage;
   final double hpMultiplier;
   final double speedMultiplier;
   final int enemyCountModifier;
@@ -213,6 +214,7 @@ class TdDungeonDef {
     this.bossIcon = 'skull',
     this.enemyImage,
     this.bossImage,
+    this.backgroundImage,
     this.hpMultiplier = 1.0,
     this.speedMultiplier = 1.0,
     this.enemyCountModifier = 0,
@@ -262,6 +264,7 @@ class TdDungeonDef {
       bossIcon: (json['bossIcon'] ?? json['boss_icon']) as String? ?? 'skull',
       enemyImage: (json['enemyImage'] ?? json['enemy_image']) as String?,
       bossImage: (json['bossImage'] ?? json['boss_image']) as String?,
+      backgroundImage: (json['backgroundImage'] ?? json['background_image']) as String?,
       hpMultiplier: ((json['hpMultiplier'] ?? json['hp_multiplier']) as num?)?.toDouble() ?? 1.0,
       speedMultiplier: ((json['speedMultiplier'] ?? json['speed_multiplier']) as num?)?.toDouble() ?? 1.0,
       enemyCountModifier: ((json['enemyCountModifier'] ?? json['enemy_count_modifier']) as num?)?.toInt() ?? 0,

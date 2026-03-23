@@ -352,9 +352,29 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildLanes() {
+    final dungeon = _game.keystone.dungeon;
     return Stack(
       fit: StackFit.expand,
       children: [
+        // Dungeon background image (subtle, atmospheric)
+        if (dungeon.backgroundImage != null) ...[
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.15,
+              child: Image.asset(
+                dungeon.backgroundImage!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          // Dark overlay for readability
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.3),
+            ),
+          ),
+        ],
         Column(
           children: List.generate(3, (lane) {
             return Expanded(

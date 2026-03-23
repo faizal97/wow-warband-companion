@@ -97,54 +97,130 @@ class TdDungeonBriefingScreen extends StatelessWidget {
   Widget _buildHeader() {
     return Column(
       children: [
-        // Dungeon icon
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: dungeon.bossColor.withValues(alpha: 0.4),
-              width: 2,
+        // Hero background image
+        if (dungeon.backgroundImage != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.asset(
+                    dungeon.backgroundImage!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                ),
+                // Dark gradient overlay (bottom-heavy for text)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.2),
+                          Colors.black.withValues(alpha: 0.6),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // Dungeon name overlay on image
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  right: 16,
+                  child: Column(
+                    children: [
+                      Text(
+                        dungeon.name.toUpperCase(),
+                        style: GoogleFonts.rajdhani(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 3,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (dungeon.theme.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          dungeon.theme,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.white.withValues(alpha: 0.7),
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: dungeon.bossColor.withValues(alpha: 0.15),
-                blurRadius: 20,
-                spreadRadius: 2,
+          ),
+        // Fallback header when no background image
+        if (dungeon.backgroundImage == null) ...[
+          // Dungeon icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: dungeon.bossColor.withValues(alpha: 0.4),
+                width: 2,
               ),
-            ],
+              boxShadow: [
+                BoxShadow(
+                  color: dungeon.bossColor.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Icon(
+              TdIcons.getIcon(dungeon.bossIcon),
+              color: dungeon.bossColor.withValues(alpha: 0.9),
+              size: 26,
+            ),
           ),
-          child: Icon(
-            TdIcons.getIcon(dungeon.bossIcon),
-            color: dungeon.bossColor.withValues(alpha: 0.9),
-            size: 26,
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(
-          dungeon.name.toUpperCase(),
-          style: GoogleFonts.rajdhani(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-            letterSpacing: 3,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        if (dungeon.theme.isNotEmpty) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 14),
           Text(
-            dungeon.theme,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w400,
-              fontStyle: FontStyle.italic,
-              color: dungeon.bossColor.withValues(alpha: 0.6),
-              height: 1.4,
+            dungeon.name.toUpperCase(),
+            style: GoogleFonts.rajdhani(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textPrimary,
+              letterSpacing: 3,
             ),
             textAlign: TextAlign.center,
           ),
+          if (dungeon.theme.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              dungeon.theme,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                fontStyle: FontStyle.italic,
+                color: dungeon.bossColor.withValues(alpha: 0.6),
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ],
     );
