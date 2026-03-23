@@ -189,6 +189,8 @@ class TdDungeonDef {
   final Color bossColor;
   final String enemyIcon;
   final String bossIcon;
+  final String? enemyImage;
+  final String? bossImage;
   final double hpMultiplier;
   final double speedMultiplier;
   final int enemyCountModifier;
@@ -209,6 +211,8 @@ class TdDungeonDef {
     this.bossColor = const Color(0xFFFF4444),
     this.enemyIcon = 'skull',
     this.bossIcon = 'skull',
+    this.enemyImage,
+    this.bossImage,
     this.hpMultiplier = 1.0,
     this.speedMultiplier = 1.0,
     this.enemyCountModifier = 0,
@@ -256,6 +260,8 @@ class TdDungeonDef {
       bossColor: _parseColor((json['bossColor'] ?? json['boss_color']) as String?),
       enemyIcon: (json['enemyIcon'] ?? json['enemy_icon']) as String? ?? 'skull',
       bossIcon: (json['bossIcon'] ?? json['boss_icon']) as String? ?? 'skull',
+      enemyImage: (json['enemyImage'] ?? json['enemy_image']) as String?,
+      bossImage: (json['bossImage'] ?? json['boss_image']) as String?,
       hpMultiplier: ((json['hpMultiplier'] ?? json['hp_multiplier']) as num?)?.toDouble() ?? 1.0,
       speedMultiplier: ((json['speedMultiplier'] ?? json['speed_multiplier']) as num?)?.toDouble() ?? 1.0,
       enemyCountModifier: ((json['enemyCountModifier'] ?? json['enemy_count_modifier']) as num?)?.toInt() ?? 0,

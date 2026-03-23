@@ -650,7 +650,9 @@ class _TdGameScreenState extends State<TdGameScreen>
               width: size,
               height: size,
               decoration: BoxDecoration(
-                color: enemyFill,
+                color: _enemyImagePath(enemy, dungeon) != null
+                    ? Colors.transparent
+                    : enemyFill,
                 shape: enemy.isBoss ? BoxShape.rectangle : BoxShape.circle,
                 borderRadius: enemy.isBoss ? BorderRadius.circular(6) : null,
                 border: shieldBorder,
@@ -669,16 +671,53 @@ class _TdGameScreenState extends State<TdGameScreen>
                     ),
                 ],
               ),
-              child: Center(
-                child: Icon(
-                  TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
-                  color: Colors.white,
-                  size: enemy.isBoss ? 18 : 14,
-                ),
+              child: ClipRRect(
+                borderRadius: enemy.isBoss
+                    ? BorderRadius.circular(6)
+                    : BorderRadius.circular(size / 2),
+                child: _buildEnemyContent(enemy, dungeon, isBeingHit, size),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Get enemy image asset path from dungeon definition, or null if not set.
+  String? _enemyImagePath(TdEnemy enemy, TdDungeonDef dungeon) {
+    return enemy.isBoss ? dungeon.bossImage : dungeon.enemyImage;
+  }
+
+  /// Build enemy visual content — image asset if available, icon fallback.
+  Widget _buildEnemyContent(
+      TdEnemy enemy, TdDungeonDef dungeon, bool isBeingHit, double size) {
+    final imagePath = _enemyImagePath(enemy, dungeon);
+    if (imagePath != null) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            imagePath,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _enemyIconFallback(enemy, dungeon),
+          ),
+          // Hit flash overlay
+          if (isBeingHit)
+            Container(color: Colors.white.withValues(alpha: 0.6)),
+        ],
+      );
+    }
+    return _enemyIconFallback(enemy, dungeon);
+  }
+
+  /// Fallback: original icon-based enemy rendering.
+  Widget _enemyIconFallback(TdEnemy enemy, TdDungeonDef dungeon) {
+    return Center(
+      child: Icon(
+        TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
+        color: Colors.white,
+        size: enemy.isBoss ? 18 : 14,
       ),
     );
   }
