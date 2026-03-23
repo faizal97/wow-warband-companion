@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/battlenet_region.dart';
 import '../services/battlenet_api_service.dart';
 import '../services/character_provider.dart';
-import '../services/character_detail_provider.dart';
 import '../services/region_service.dart';
 import '../theme/app_theme.dart';
 import 'main_menu_screen.dart';
@@ -90,9 +89,6 @@ class RegionPickerScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     final provider = context.read<CharacterProvider>();
-    final detailProvider = context.read<CharacterDetailProvider>();
-    provider.useRealApi();
-    detailProvider.useRealApi();
     await provider.loadCharacters();
 
     if (!context.mounted) return;

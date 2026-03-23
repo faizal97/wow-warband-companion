@@ -6,6 +6,7 @@ import '../models/character.dart';
 import 'data/effect_types.dart';
 import 'data/td_balance_config.dart';
 import 'data/td_class_registry.dart';
+import 'data/td_hero_registry.dart';
 import 'data/td_run_state.dart';
 import 'effects/tower_effects.dart';
 import 'effects/enemy_effects.dart';
@@ -94,6 +95,7 @@ class TdGameState extends ChangeNotifier {
     int keystoneLevel, {
     required TdDungeonDef dungeon,
     required TdClassRegistry classRegistry,
+    TdHeroRegistry? heroRegistry,
     TdBalanceConfig? balanceConfig,
     TdRunState? runState,
   }) {
@@ -102,7 +104,8 @@ class TdGameState extends ChangeNotifier {
     keystone = KeystoneRun.generate(keystoneLevel, dungeon: dungeon);
 
     towers = List.generate(selectedCharacters.length, (i) {
-      var classDef =
+      var classDef = heroRegistry?.getHeroClassDef(
+              selectedCharacters[i].name, classRegistry) ??
           classRegistry.getClass(selectedCharacters[i].characterClass);
       // Apply Empower upgrade: swap to empowered passive
       final upgrades = runState?.getUpgrades(selectedCharacters[i].id);

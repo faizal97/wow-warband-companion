@@ -7,6 +7,7 @@ import 'package:wow_warband_companion/models/character.dart';
 import 'package:wow_warband_companion/td/data/effect_types.dart';
 import 'package:wow_warband_companion/td/data/td_balance_config.dart';
 import 'package:wow_warband_companion/td/data/td_class_registry.dart';
+import 'package:wow_warband_companion/td/data/td_hero_registry.dart';
 import 'package:wow_warband_companion/td/data/td_run_state.dart';
 import 'package:wow_warband_companion/td/models/td_models.dart';
 import 'package:wow_warband_companion/td/td_game_state.dart';
@@ -59,6 +60,64 @@ class _DiskClassRegistry extends TdClassRegistry {
 
   @override
   List<String> get allClassNames => _diskClasses.keys.toList();
+
+  @override
+  bool get isLoaded => true;
+}
+
+/// Test-friendly hero registry that loads from disk instead of rootBundle.
+class _DiskHeroRegistry extends TdHeroRegistry {
+  final Map<String, TdClassDef> _heroClassDefs = {};
+  final List<WowCharacter> _heroCharacters = [];
+
+  _DiskHeroRegistry(List<dynamic> heroesJson, TdClassRegistry classReg) {
+    for (final entry in heroesJson) {
+      final json = entry as Map<String, dynamic>;
+      final name = json['name'] as String? ?? '';
+      final className = json['class'] as String? ?? '';
+      final baseDef = classReg.getClass(className);
+
+      // Parse passive
+      final passive = json['passive'] != null
+          ? PassiveDef.fromJson(
+              Map<String, dynamic>.from(json['passive'] as Map))
+          : const PassiveDef(name: 'None');
+      final empowered = json['empoweredPassive'] != null
+          ? PassiveDef.fromJson(
+              Map<String, dynamic>.from(json['empoweredPassive'] as Map))
+          : null;
+
+      _heroClassDefs[name.toLowerCase()] = TdClassDef(
+        name: baseDef.name,
+        archetype: baseDef.archetype,
+        passive: passive,
+        empoweredPassive: empowered,
+        attackColor: baseDef.attackColor,
+      );
+
+      _heroCharacters.add(WowCharacter(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        name: name,
+        realm: 'Azeroth',
+        realmSlug: 'azeroth',
+        level: (json['level'] as num?)?.toInt() ?? 90,
+        characterClass: className,
+        activeSpec: json['spec'] as String? ?? '',
+        race: json['race'] as String? ?? '',
+        faction: json['faction'] as String? ?? '',
+        equippedItemLevel: (json['itemLevel'] as num?)?.toInt() ?? 250,
+      ));
+    }
+  }
+
+  @override
+  List<WowCharacter> getHeroes() => _heroCharacters;
+
+  @override
+  TdClassDef? getHeroClassDef(
+      String characterName, TdClassRegistry classRegistry) {
+    return _heroClassDefs[characterName.toLowerCase()];
+  }
 
   @override
   bool get isLoaded => true;
@@ -151,10 +210,11 @@ class BatchResult {
 
 class TdSim {
   late final TdClassRegistry classRegistry;
+  late final TdHeroRegistry heroRegistry;
   late final Map<String, TdDungeonDef> dungeons;
 
   TdSim() {
-    // Load from disk
+    // Load classes from disk
     final classFile = File('assets/td/classes.json');
     final classData =
         jsonDecode(classFile.readAsStringSync()) as Map<String, dynamic>;
@@ -163,12 +223,22 @@ class TdSim {
       classData['_fallback'] as Map<String, dynamic>?,
     );
 
+    // Load dungeons from disk
     final dungeonFile = File('assets/td/dungeons.json');
     final dungeonData =
         jsonDecode(dungeonFile.readAsStringSync()) as Map<String, dynamic>;
     final raw = dungeonData['dungeons'] as Map<String, dynamic>? ?? {};
     dungeons = raw.map((key, value) =>
         MapEntry(key, TdDungeonDef.fromJson(key, value as Map<String, dynamic>)));
+
+    // Load heroes from disk
+    final heroFile = File('assets/td/heroes.json');
+    final heroData =
+        jsonDecode(heroFile.readAsStringSync()) as Map<String, dynamic>;
+    heroRegistry = _DiskHeroRegistry(
+      heroData['heroes'] as List<dynamic>? ?? [],
+      classRegistry,
+    );
   }
 
   /// All available class names.
@@ -269,15 +339,31 @@ class TdSim {
     int seed = 42,
     bool verbose = false,
     TdRunState? runState,
+    bool useHeroes = false,
   }) {
     final dung = findDungeon(dungeon);
     final game = TdGameState();
-    final characters = comp.map((c) => _makeChar(c, ilvl: ilvl)).toList();
+
+    List<WowCharacter> characters;
+    TdHeroRegistry? heroReg;
+
+    if (useHeroes) {
+      final allHeroes = heroRegistry.getHeroes();
+      characters = comp.map((name) {
+        return allHeroes.firstWhere(
+          (h) => h.name.toLowerCase() == name.toLowerCase(),
+          orElse: () => _makeChar(name, ilvl: ilvl),
+        );
+      }).toList();
+      heroReg = heroRegistry;
+    } else {
+      characters = comp.map((c) => _makeChar(c, ilvl: ilvl)).toList();
+    }
 
     // Start run
     game.startRun(characters, level,
         dungeon: dung, classRegistry: classRegistry,
-        runState: runState);
+        heroRegistry: heroReg, runState: runState);
 
     // Override keystone if specific affixes requested
     final ks = affixes != null
@@ -388,6 +474,7 @@ class TdSim {
     int ilvl = 600,
     int runs = 20,
     TdRunState? runState,
+    bool useHeroes = false,
   }) {
     var clears = 0;
     var totalLives = 0;
@@ -406,6 +493,7 @@ class TdSim {
         ilvl: ilvl,
         seed: 1000 + i * 37,
         runState: runState,
+        useHeroes: useHeroes,
       );
       if (result.cleared) clears++;
       totalLives += result.livesRemaining;

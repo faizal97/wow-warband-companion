@@ -14,7 +14,6 @@ class CharacterProvider extends ChangeNotifier {
   List<WowCharacter> _characters = [];
   WowCharacter? _selectedCharacter;
   bool _isLoading = false;
-  bool _useMockData = true; // Toggled off after successful OAuth
   int _loadGeneration = 0;
 
   CharacterProvider(this._apiService, this._authService, this._cacheService);
@@ -24,32 +23,21 @@ class CharacterProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasCharacters => _characters.isNotEmpty;
 
-  /// Switch to real API mode (called after successful OAuth).
-  void useRealApi() {
-    _useMockData = false;
-  }
-
   /// Bumps the load generation, causing any in-flight load to be discarded.
   void bumpLoadGeneration() {
     _loadGeneration++;
   }
 
-  /// Load characters — uses mock data in dev, real API in production.
+  /// Load characters from the Battle.net API.
   Future<void> loadCharacters() async {
     final generation = _loadGeneration;
 
     _isLoading = true;
     notifyListeners();
 
-    if (_useMockData) {
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (_loadGeneration != generation) return;
-      _characters = WowCharacter.mockCharacters();
-    } else {
-      final chars = await _apiService.getAccountCharacters();
-      if (_loadGeneration != generation) return;
-      _characters = chars;
-    }
+    final chars = await _apiService.getAccountCharacters();
+    if (_loadGeneration != generation) return;
+    _characters = chars;
 
     // Auto-select the first (highest level) character
     if (_characters.isNotEmpty && _selectedCharacter == null) {
@@ -60,7 +48,7 @@ class CharacterProvider extends ChangeNotifier {
     notifyListeners();
 
     // Enrich characters in the background (after list is displayed)
-    if (!_useMockData && _characters.isNotEmpty) {
+    if (_characters.isNotEmpty) {
       _enrichAllCharacters();
     }
   }
@@ -122,16 +110,14 @@ class CharacterProvider extends ChangeNotifier {
     _selectedCharacter = character;
     notifyListeners();
 
-    if (!_useMockData) {
-      // Fetch detailed profile with avatar/render
-      final detailed = await _apiService.getCharacterProfile(
-        character.realmSlug,
-        character.name,
-      );
-      if (detailed != null) {
-        _selectedCharacter = detailed;
-        notifyListeners();
-      }
+    // Fetch detailed profile with avatar/render
+    final detailed = await _apiService.getCharacterProfile(
+      character.realmSlug,
+      character.name,
+    );
+    if (detailed != null) {
+      _selectedCharacter = detailed;
+      notifyListeners();
     }
   }
 

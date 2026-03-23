@@ -10,6 +10,7 @@ import '../data/effect_types.dart';
 import '../data/td_balance_config.dart';
 import '../data/td_class_registry.dart';
 import '../data/td_dungeon_registry.dart';
+import '../data/td_hero_registry.dart';
 import '../data/td_rotation.dart';
 import '../data/td_run_state.dart';
 import 'td_class_guide_screen.dart';
@@ -19,7 +20,8 @@ import 'td_game_screen.dart';
 import 'td_upgrade_screen.dart';
 
 class TdMenuScreen extends StatefulWidget {
-  const TdMenuScreen({super.key});
+  final List<WowCharacter>? heroes;
+  const TdMenuScreen({super.key, this.heroes});
 
   @override
   State<TdMenuScreen> createState() => _TdMenuScreenState();
@@ -30,13 +32,20 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   late AnimationController _glowController;
 
   TdClassRegistry? _classRegistry;
+  TdHeroRegistry? _heroRegistry;
   TdRotation? _rotation;
   List<TdDungeonDef> _dungeons = [];
   bool _dataLoading = true;
 
+  bool _useHeroes = false; // false = warband, true = legendary heroes
+  bool _rosterLocked = false; // locked after INSERT KEYSTONE
+
   @override
   void initState() {
     super.initState();
+    if (widget.heroes != null) {
+      _useHeroes = true;
+    }
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
@@ -47,17 +56,20 @@ class _TdMenuScreenState extends State<TdMenuScreen>
   Future<void> _loadData() async {
     final classReg = TdClassRegistry();
     final dungeonReg = TdDungeonRegistry();
+    final heroReg = TdHeroRegistry();
     final rotation = TdRotation();
 
     await Future.wait([
       classReg.load(),
       dungeonReg.load(),
+      heroReg.load(),
       rotation.load(),
     ]);
 
     if (mounted) {
       setState(() {
         _classRegistry = classReg;
+        _heroRegistry = heroReg;
         _rotation = rotation;
         _dungeons = rotation.getDungeons(dungeonReg);
         _dataLoading = false;
@@ -71,11 +83,25 @@ class _TdMenuScreenState extends State<TdMenuScreen>
     super.dispose();
   }
 
+  bool get _isGuestMode => widget.heroes != null;
+
+  List<WowCharacter> _getActiveRoster(List<WowCharacter> warbandCharacters) {
+    if (widget.heroes != null) {
+      return _heroRegistry?.getHeroes() ?? widget.heroes!;
+    }
+    return _useHeroes
+        ? (_heroRegistry?.getHeroes() ?? WowCharacter.legendaryHeroes())
+        : warbandCharacters;
+  }
+
   bool get _canStart => !_dataLoading;
 
   void _startRun(List<WowCharacter> allCharacters) {
+    setState(() => _rosterLocked = true);
     final runState = TdRunState();
-    _navigateToKey(allCharacters, runState);
+    _navigateToKey(allCharacters, runState).then((_) {
+      if (mounted) setState(() => _rosterLocked = false);
+    });
   }
 
   Future<void> _navigateToKey(
@@ -111,6 +137,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           keystoneLevel: runState.keystoneLevel,
           maxTowers: runState.maxTowers(config),
           classRegistry: _classRegistry!,
+          heroRegistry: _heroRegistry,
         ),
       ),
     );
@@ -124,6 +151,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
             runState: runState,
             selectedCharacters: comp,
             classRegistry: _classRegistry!,
+            heroRegistry: _heroRegistry,
           ),
         ),
       );
@@ -139,6 +167,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
           keystoneLevel: runState.keystoneLevel,
           dungeon: dungeon,
           classRegistry: _classRegistry!,
+          heroRegistry: _heroRegistry,
           dungeons: _dungeons,
           runState: runState,
         ),
@@ -188,7 +217,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
       backgroundColor: AppTheme.background,
       body: Consumer<CharacterProvider>(
         builder: (context, provider, _) {
-          final characters = provider.characters;
+          final characters = _getActiveRoster(provider.characters);
           return Stack(
             children: [
               // Main scrollable content
@@ -196,6 +225,9 @@ class _TdMenuScreenState extends State<TdMenuScreen>
                 slivers: [
                   // Dungeon header
                   SliverToBoxAdapter(child: _buildDungeonHeader()),
+
+                  // Roster source tab (only when logged in)
+                  SliverToBoxAdapter(child: _buildRosterTab()),
 
                   // Roster section header
                   SliverToBoxAdapter(child: _buildRosterSectionHeader(characters.length)),
@@ -211,6 +243,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
                             isSelected: false,
                             onTap: () {}, // read-only
                             classRegistry: _classRegistry,
+                            heroRegistry: _heroRegistry,
                           );
                         },
                         childCount: characters.length,
@@ -361,7 +394,7 @@ class _TdMenuScreenState extends State<TdMenuScreen>
       child: Row(
         children: [
           Text(
-            'YOUR ROSTER',
+            _useHeroes ? 'LEGENDARY HEROES' : 'YOUR ROSTER',
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -399,6 +432,67 @@ class _TdMenuScreenState extends State<TdMenuScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRosterTab() {
+    if (_isGuestMode) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppTheme.surfaceBorder),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: [
+            _buildTabButton('YOUR WARBAND', !_useHeroes),
+            _buildTabButton('LEGENDARY HEROES', _useHeroes),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String label, bool isActive) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: _rosterLocked
+            ? null
+            : () => setState(() {
+                  _useHeroes = label == 'LEGENDARY HEROES';
+                }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive
+                ? const Color(0xFFA335EE).withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: isActive
+                ? Border.all(
+                    color: const Color(0xFFA335EE).withValues(alpha: 0.4))
+                : null,
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: isActive
+                    ? const Color(0xFFA335EE)
+                    : AppTheme.textTertiary,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -481,18 +575,23 @@ class _CharacterPickerCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final TdClassRegistry? classRegistry;
+  final TdHeroRegistry? heroRegistry;
 
   const _CharacterPickerCard({
     required this.character,
     required this.isSelected,
     required this.onTap,
     this.classRegistry,
+    this.heroRegistry,
   });
 
   @override
   Widget build(BuildContext context) {
     final classColor = WowClassColors.forClass(character.characterClass);
-    final classDef = classRegistry?.getClass(character.characterClass);
+    final classDef = (classRegistry != null
+            ? heroRegistry?.getHeroClassDef(character.name, classRegistry!)
+            : null) ??
+        classRegistry?.getClass(character.characterClass);
     final archetype = classDef?.archetype ?? TowerArchetype.melee;
     final archetypeLabel = archetype.name.toUpperCase();
 
@@ -675,12 +774,18 @@ class _CharacterPickerCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: character.avatarUrl != null
-            ? CachedNetworkImage(
-                imageUrl: character.avatarUrl!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _avatarFallback(classColor),
-                errorWidget: (_, __, ___) => _avatarFallback(classColor),
-              )
+            ? (character.avatarUrl!.startsWith('asset:')
+                ? Image.asset(
+                    character.avatarUrl!.substring(6),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _avatarFallback(classColor),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: character.avatarUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _avatarFallback(classColor),
+                    errorWidget: (_, __, ___) => _avatarFallback(classColor),
+                  ))
             : _avatarFallback(classColor),
       ),
     );

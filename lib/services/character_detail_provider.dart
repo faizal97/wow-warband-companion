@@ -18,7 +18,6 @@ class CharacterDetailProvider extends ChangeNotifier {
   bool _isEquipmentLoading = false;
   bool _isMythicPlusLoading = false;
   bool _isRaidLoading = false;
-  bool _useMockData = true;
 
   CharacterDetailProvider(this._apiService, this._cacheService);
 
@@ -28,11 +27,6 @@ class CharacterDetailProvider extends ChangeNotifier {
   bool get isEquipmentLoading => _isEquipmentLoading;
   bool get isMythicPlusLoading => _isMythicPlusLoading;
   bool get isRaidLoading => _isRaidLoading;
-
-  /// Switch to real API mode (called after successful OAuth).
-  void useRealApi() {
-    _useMockData = false;
-  }
 
   /// Loads equipment and M+ data for a character.
   ///
@@ -45,18 +39,6 @@ class CharacterDetailProvider extends ChangeNotifier {
     _isMythicPlusLoading = true;
     _isRaidLoading = true;
     notifyListeners();
-
-    if (_useMockData) {
-      await Future.delayed(const Duration(milliseconds: 600));
-      _equipment = CharacterEquipment.mock();
-      _isEquipmentLoading = false;
-      _mythicPlusProfile = MythicPlusProfile.mock();
-      _isMythicPlusLoading = false;
-      _raidProgression = RaidProgression.mock();
-      _isRaidLoading = false;
-      notifyListeners();
-      return;
-    }
 
     // Check cache first
     final cachedEquipment = _cacheService.getCachedEquipment(character.id);

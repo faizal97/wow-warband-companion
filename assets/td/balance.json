@@ -2,11 +2,11 @@
   "_version": 1,
   "_description": "Global balance constants for the Tower Defense game. Edit these to tune difficulty without changing code.",
   "general": {
-    "startingLives": 25,
+    "startingLives": 20,
     "totalWaves": 5,
-    "baseEnemyHp": 200,
+    "baseEnemyHp": 260,
     "baseEnemySpeed": 0.10,
-    "waveHpScalePerWave": 0.2
+    "waveHpScalePerWave": 0.12
   },
   "boss": {
     "hpMultiplier": 6.0,
@@ -47,11 +47,11 @@
     }
   },
   "keystoneScaling": {
-    "linearPhaseEnd": 10,
-    "linearRate": 0.12,
-    "exponentialBase": 1.96,
+    "linearPhaseEnd": 20,
+    "linearRate": 0.10,
+    "exponentialBase": 2.8,
     "exponentialLinear": 0.25,
-    "exponentialQuadratic": 0.05
+    "exponentialQuadratic": 0.02
   },
   "affixes": {
     "thresholds": {
@@ -86,8 +86,8 @@
     }
   },
   "valor": {
-    "cleanClearThreshold": 20,
-    "standardClearMin": 10,
+    "cleanClearThreshold": 16,
+    "standardClearMin": 8,
     "cleanClearReward": 3,
     "standardClearReward": 2,
     "scrapedByReward": 1,

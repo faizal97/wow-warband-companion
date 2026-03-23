@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../../theme/wow_class_colors.dart';
 import '../data/effect_types.dart';
 import '../data/td_class_registry.dart';
+import '../data/td_hero_registry.dart';
 import 'td_class_guide_screen.dart';
 import 'td_dungeon_briefing_screen.dart';
 
@@ -20,6 +21,7 @@ class TdCompSelectionScreen extends StatefulWidget {
   final int keystoneLevel;
   final int maxTowers;
   final TdClassRegistry classRegistry;
+  final TdHeroRegistry? heroRegistry;
 
   const TdCompSelectionScreen({
     super.key,
@@ -28,6 +30,7 @@ class TdCompSelectionScreen extends StatefulWidget {
     required this.keystoneLevel,
     required this.maxTowers,
     required this.classRegistry,
+    this.heroRegistry,
   });
 
   @override
@@ -41,10 +44,16 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
   bool get _canDeploy => _selectedIds.length >= 3;
   bool get _atMax => _selectedIds.length >= widget.maxTowers;
 
+  /// Resolve class def with hero override if available.
+  TdClassDef _getClassDef(WowCharacter c) {
+    return widget.heroRegistry?.getHeroClassDef(c.name, widget.classRegistry) ??
+        widget.classRegistry.getClass(c.characterClass);
+  }
+
   List<WowCharacter> get _filteredCharacters {
     if (_archetypeFilter == null) return widget.allCharacters;
     return widget.allCharacters.where((c) {
-      final def = widget.classRegistry.getClass(c.characterClass);
+      final def = _getClassDef(c);
       return def.archetype.name == _archetypeFilter;
     }).toList();
   }
@@ -411,7 +420,7 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
   Widget _buildCharacterRow(WowCharacter character) {
     final isSelected = _selectedIds.contains(character.id);
     final classColor = WowClassColors.forClass(character.characterClass);
-    final classDef = widget.classRegistry.getClass(character.characterClass);
+    final classDef = _getClassDef(character);
     final isDisabled = _atMax && !isSelected;
 
     return GestureDetector(
@@ -454,16 +463,24 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                 ),
                 child: ClipOval(
                   child: character.avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: character.avatarUrl!,
-                          width: 36, height: 36, fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 18)),
-                          errorWidget: (_, __, ___) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 18)),
-                        )
+                      ? (character.avatarUrl!.startsWith('asset:')
+                          ? Image.asset(
+                              character.avatarUrl!.substring(6),
+                              width: 36, height: 36, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: character.avatarUrl!,
+                              width: 36, height: 36, fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                              errorWidget: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 18)),
+                            ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
                           child: Icon(Icons.person, color: classColor, size: 18)),
@@ -535,7 +552,7 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
   Widget _buildCharacterTile(WowCharacter character) {
     final isSelected = _selectedIds.contains(character.id);
     final classColor = WowClassColors.forClass(character.characterClass);
-    final classDef = widget.classRegistry.getClass(character.characterClass);
+    final classDef = _getClassDef(character);
     final isDisabled = _atMax && !isSelected;
 
     return GestureDetector(
@@ -585,22 +602,34 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                 ),
                 child: ClipOval(
                   child: character.avatarUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: character.avatarUrl!,
-                          width: 48,
-                          height: 48,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: classColor.withValues(alpha: 0.2),
-                            child: Icon(Icons.person,
-                                color: classColor, size: 24),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: classColor.withValues(alpha: 0.2),
-                            child: Icon(Icons.person,
-                                color: classColor, size: 24),
-                          ),
-                        )
+                      ? (character.avatarUrl!.startsWith('asset:')
+                          ? Image.asset(
+                              character.avatarUrl!.substring(6),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: character.avatarUrl!,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: classColor.withValues(alpha: 0.2),
+                                child: Icon(Icons.person,
+                                    color: classColor, size: 24),
+                              ),
+                            ))
                       : Container(
                           color: classColor.withValues(alpha: 0.2),
                           child: Icon(Icons.person,
@@ -652,7 +681,7 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
   // -----------------------------------------------------------------------
 
   void _showCharacterDetail(WowCharacter character) {
-    final classDef = widget.classRegistry.getClass(character.characterClass);
+    final classDef = _getClassDef(character);
     final classColor = WowClassColors.forClass(character.characterClass);
     final archInfo = widget.classRegistry.getArchetype(classDef.archetype);
     final isSelected = _selectedIds.contains(character.id);
@@ -700,14 +729,23 @@ class _TdCompSelectionScreenState extends State<TdCompSelectionScreen> {
                   ),
                   child: ClipOval(
                     child: character.avatarUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: character.avatarUrl!,
-                            width: 52, height: 52, fit: BoxFit.cover,
-                            errorWidget: (_, __, ___) => Container(
-                              color: classColor.withValues(alpha: 0.2),
-                              child: Icon(Icons.person, color: classColor, size: 26),
-                            ),
-                          )
+                        ? (character.avatarUrl!.startsWith('asset:')
+                            ? Image.asset(
+                                character.avatarUrl!.substring(6),
+                                width: 52, height: 52, fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                ),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: character.avatarUrl!,
+                                width: 52, height: 52, fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.2),
+                                  child: Icon(Icons.person, color: classColor, size: 26),
+                                ),
+                              ))
                         : Container(
                             color: classColor.withValues(alpha: 0.2),
                             child: Icon(Icons.person, color: classColor, size: 26),

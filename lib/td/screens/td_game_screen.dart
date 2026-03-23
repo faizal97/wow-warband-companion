@@ -7,6 +7,7 @@ import '../../models/character.dart';
 import '../../theme/app_theme.dart';
 import '../data/effect_types.dart';
 import '../data/td_class_registry.dart';
+import '../data/td_hero_registry.dart';
 import '../data/td_run_state.dart';
 import '../models/td_models.dart';
 import '../td_game_state.dart';
@@ -21,6 +22,7 @@ class TdGameScreen extends StatefulWidget {
   final int keystoneLevel;
   final TdDungeonDef dungeon;
   final TdClassRegistry classRegistry;
+  final TdHeroRegistry? heroRegistry;
   final List<TdDungeonDef> dungeons; // rotation pool for roulette on victory
   final TdRunState? runState;
 
@@ -30,6 +32,7 @@ class TdGameScreen extends StatefulWidget {
     required this.keystoneLevel,
     required this.dungeon,
     required this.classRegistry,
+    this.heroRegistry,
     required this.dungeons,
     this.runState,
   });
@@ -54,7 +57,7 @@ class _TdGameScreenState extends State<TdGameScreen>
     _game = TdGameState();
     _game.startRun(widget.characters, widget.keystoneLevel,
         dungeon: widget.dungeon, classRegistry: widget.classRegistry,
-        runState: widget.runState);
+        heroRegistry: widget.heroRegistry, runState: widget.runState);
     _game.addListener(_onGameStateChanged);
     // Don't auto-start — let the player position towers first
     _ticker = createTicker(_onTick);
@@ -993,14 +996,22 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
             child: ClipOval(
               child: tower.character.avatarUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: tower.character.avatarUrl!,
-                      fit: BoxFit.cover,
-                      width: 40,
-                      height: 40,
-                      placeholder: (_, __) => _towerFallback(tower, towerColor),
-                      errorWidget: (_, __, ___) => _towerFallback(tower, towerColor),
-                    )
+                  ? (tower.character.avatarUrl!.startsWith('asset:')
+                      ? Image.asset(
+                          tower.character.avatarUrl!.substring(6),
+                          fit: BoxFit.cover,
+                          width: 40,
+                          height: 40,
+                          errorBuilder: (_, __, ___) => _towerFallback(tower, towerColor),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: tower.character.avatarUrl!,
+                          fit: BoxFit.cover,
+                          width: 40,
+                          height: 40,
+                          placeholder: (_, __) => _towerFallback(tower, towerColor),
+                          errorWidget: (_, __, ___) => _towerFallback(tower, towerColor),
+                        ))
                   : _towerFallback(tower, towerColor),
             ),
           ),
@@ -1097,14 +1108,22 @@ class _TdGameScreenState extends State<TdGameScreen>
                   ),
                   child: ClipOval(
                     child: tower.character.avatarUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: tower.character.avatarUrl!,
-                            fit: BoxFit.cover,
-                            width: 28,
-                            height: 28,
-                            placeholder: (_, __) => _infoBarFallback(tower, towerColor),
-                            errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
-                          )
+                        ? (tower.character.avatarUrl!.startsWith('asset:')
+                            ? Image.asset(
+                                tower.character.avatarUrl!.substring(6),
+                                fit: BoxFit.cover,
+                                width: 28,
+                                height: 28,
+                                errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: tower.character.avatarUrl!,
+                                fit: BoxFit.cover,
+                                width: 28,
+                                height: 28,
+                                placeholder: (_, __) => _infoBarFallback(tower, towerColor),
+                                errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                              ))
                         : _infoBarFallback(tower, towerColor),
                   ),
                 ),
@@ -1347,12 +1366,18 @@ class _TdGameScreenState extends State<TdGameScreen>
                     ),
                     child: ClipOval(
                       child: tower.character.avatarUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: tower.character.avatarUrl!,
-                              fit: BoxFit.cover, width: 28, height: 28,
-                              placeholder: (_, __) => _infoBarFallback(tower, towerColor),
-                              errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
-                            )
+                          ? (tower.character.avatarUrl!.startsWith('asset:')
+                              ? Image.asset(
+                                  tower.character.avatarUrl!.substring(6),
+                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: tower.character.avatarUrl!,
+                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  placeholder: (_, __) => _infoBarFallback(tower, towerColor),
+                                  errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
+                                ))
                           : _infoBarFallback(tower, towerColor),
                     ),
                   ),
@@ -1644,10 +1669,26 @@ class _TdGameScreenState extends State<TdGameScreen>
                   ),
                   child: ClipOval(
                     child: tower.character.avatarUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: tower.character.avatarUrl!,
-                            fit: BoxFit.cover, width: 48, height: 48,
-                          )
+                        ? (tower.character.avatarUrl!.startsWith('asset:')
+                            ? Image.asset(
+                                tower.character.avatarUrl!.substring(6),
+                                fit: BoxFit.cover, width: 48, height: 48,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: classColor.withValues(alpha: 0.15),
+                                  child: Center(
+                                    child: Text(
+                                      tower.character.name[0].toUpperCase(),
+                                      style: GoogleFonts.rajdhani(
+                                        fontSize: 22, fontWeight: FontWeight.w700, color: classColor,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: tower.character.avatarUrl!,
+                                fit: BoxFit.cover, width: 48, height: 48,
+                              ))
                         : Container(
                             color: classColor.withValues(alpha: 0.15),
                             child: Center(

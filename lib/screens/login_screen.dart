@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/character.dart';
 import '../services/battlenet_auth_service.dart';
-import '../services/character_provider.dart';
 import '../services/region_service.dart';
+import '../td/screens/td_menu_screen.dart';
 import '../theme/app_theme.dart';
-import 'main_menu_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -104,16 +104,67 @@ class LoginScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
 
-                  // Dev mode: skip login
-                  TextButton(
-                    onPressed: () => _skipLogin(context),
-                    child: Text(
-                      'Continue with demo data',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: AppTheme.textTertiary,
+                  // Tower Defense guest entry
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () => _launchTD(context),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF1A0E2E),
+                            Color(0xFF12121C),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFA335EE).withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.diamond_rounded,
+                            color: Color(0xFFFFD700),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'DEFEND THE DUNGEON',
+                                  style: GoogleFonts.rajdhani(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Play as legendary heroes',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppTheme.textTertiary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.textTertiary,
+                            size: 20,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -135,16 +186,11 @@ class LoginScreen extends StatelessWidget {
     launchUrl(authUrl, mode: LaunchMode.externalApplication);
   }
 
-  void _skipLogin(BuildContext context) {
-    final provider = context.read<CharacterProvider>();
-    provider.loadCharacters().then((_) {
-      if (context.mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const MainMenuScreen(),
-          ),
-        );
-      }
-    });
+  void _launchTD(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TdMenuScreen(heroes: WowCharacter.legendaryHeroes()),
+      ),
+    );
   }
 }

@@ -182,9 +182,6 @@ class _AutoLoginHandlerState extends State<_AutoLoginHandler> {
     apiService.setRegion(regionService.activeRegion);
 
     final provider = context.read<CharacterProvider>();
-    final detailProvider = context.read<CharacterDetailProvider>();
-    provider.useRealApi();
-    detailProvider.useRealApi();
     await provider.loadCharacters();
 
     if (!mounted) return;
@@ -298,9 +295,6 @@ class _OAuthCallbackHandlerState extends State<_OAuthCallbackHandler> {
 
       setState(() => _status = 'Loading characters...');
       final provider = context.read<CharacterProvider>();
-      final detailProvider = context.read<CharacterDetailProvider>();
-      provider.useRealApi();
-      detailProvider.useRealApi();
       await provider.loadCharacters();
 
       if (!mounted) return;
