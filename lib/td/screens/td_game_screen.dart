@@ -53,6 +53,15 @@ class _TdGameScreenState extends State<TdGameScreen>
   int? _dragHoverLane;
   int? _dragHoverSlot;
 
+  /// Scale factor for game elements based on screen width.
+  /// Mobile (~375px) = 1.0x, Tablet (~768px) = 1.3x, Desktop (~1200px+) = 1.6x
+  double get _uiScale {
+    final width = MediaQuery.of(context).size.width;
+    if (width > 1000) return 1.6;
+    if (width > 700) return 1.3;
+    return 1.0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -622,7 +631,7 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildEnemy(TdEnemy enemy, double laneWidth, double laneHeight) {
-    final size = enemy.isBoss ? 36.0 : 24.0;
+    final size = (enemy.isBoss ? 36.0 : 24.0) * _uiScale;
     final left = ((1.0 - enemy.position) * (laneWidth - size)).clamp(0.0, laneWidth - size);
     final top = (laneHeight - size) / 2;
 
@@ -658,7 +667,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             // HP bar
             SizedBox(
               width: size + 4,
-              height: 3,
+              height: 3 * _uiScale,
               child: Stack(
                 children: [
                   Container(
@@ -752,7 +761,7 @@ class _TdGameScreenState extends State<TdGameScreen>
       child: Icon(
         TdIcons.getIcon(enemy.isBoss ? dungeon.bossIcon : dungeon.enemyIcon),
         color: Colors.white,
-        size: enemy.isBoss ? 18 : 14,
+        size: (enemy.isBoss ? 18 : 14) * _uiScale,
       ),
     );
   }
@@ -975,25 +984,27 @@ class _TdGameScreenState extends State<TdGameScreen>
 
       // Position tower at its slot: slotPosition maps 0.0-1.0 where
       // 0.0=spawn (right), 1.0=goal (left). Visual left = (1 - pos) * width.
-      final visualLeft = (1.0 - tower.slotPosition) * laneWidth - 20; // center the 44px tower
+      final scale = _uiScale;
+      final towerSize = 44 * scale;
+      final visualLeft = (1.0 - tower.slotPosition) * laneWidth - (20 * scale); // center the tower
 
       // Vertical stacking: spread towers evenly within the lane height
       double top;
       if (nInSlot == 1) {
-        top = (laneHeight - 40) / 2 - 6;
+        top = (laneHeight - 40 * scale) / 2 - 6;
       } else {
         // Distribute vertically with some padding
-        final totalHeight = nInSlot * 46.0;
+        final totalHeight = nInSlot * (46.0 * scale);
         final startY = (laneHeight - totalHeight) / 2;
-        top = startY + indexInSlot * 46.0;
+        top = startY + indexInSlot * (46.0 * scale);
       }
 
       final towerColor = tower.color;
 
       laneTowers.add(
         Positioned(
-          left: visualLeft.clamp(4, laneWidth - 44),
-          top: top.clamp(0, laneHeight - 50),
+          left: visualLeft.clamp(4, laneWidth - towerSize),
+          top: top.clamp(0, laneHeight - (50 * scale)),
           child: Draggable<int>(
             data: i,
             feedback: Material(
@@ -1017,17 +1028,18 @@ class _TdGameScreenState extends State<TdGameScreen>
     final glowColor = isSupport ? tower.attackColor : towerColor;
     final isDebuffed = tower.isDebuffed;
 
+    final scale = _uiScale;
     return SizedBox(
-      width: 44,
-      height: 44,
+      width: 44 * scale,
+      height: 44 * scale,
       child: Stack(
         alignment: Alignment.center,
         children: [
           // Debuff red ring (behind the tower)
           if (isDebuffed)
             Container(
-              width: 44,
-              height: 44,
+              width: 44 * scale,
+              height: 44 * scale,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -1045,8 +1057,8 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
           // Tower circle (always class-colored)
           Container(
-            width: 40,
-            height: 40,
+            width: 40 * scale,
+            height: 40 * scale,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
@@ -1074,15 +1086,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                       ? Image.asset(
                           tower.character.avatarUrl!.substring(6),
                           fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
+                          width: 40 * scale,
+                          height: 40 * scale,
                           errorBuilder: (_, __, ___) => _towerFallback(tower, towerColor),
                         )
                       : CachedNetworkImage(
                           imageUrl: tower.character.avatarUrl!,
                           fit: BoxFit.cover,
-                          width: 40,
-                          height: 40,
+                          width: 40 * scale,
+                          height: 40 * scale,
                           placeholder: (_, __) => _towerFallback(tower, towerColor),
                           errorWidget: (_, __, ___) => _towerFallback(tower, towerColor),
                         ))
@@ -1116,14 +1128,15 @@ class _TdGameScreenState extends State<TdGameScreen>
 
   Widget _towerFallback(TdTower tower, Color towerColor) {
     final classIcon = TdClassIcons.assetPath(tower.character.characterClass);
+    final scale = _uiScale;
     return Container(
-      width: 40,
-      height: 40,
+      width: 40 * scale,
+      height: 40 * scale,
       color: towerColor.withValues(alpha: 0.15),
       child: classIcon != null
           ? Image.asset(
               classIcon,
-              width: 28, height: 28, fit: BoxFit.contain,
+              width: 28 * scale, height: 28 * scale, fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Center(
                 child: Text(
                   tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
@@ -1169,6 +1182,7 @@ class _TdGameScreenState extends State<TdGameScreen>
   // -----------------------------------------------------------------------
 
   Widget _buildTowerInfoBar() {
+    final scale = _uiScale;
     return Container(
       color: AppTheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -1183,8 +1197,8 @@ class _TdGameScreenState extends State<TdGameScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 28 * scale,
+                  height: 28 * scale,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
@@ -1198,15 +1212,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                             ? Image.asset(
                                 tower.character.avatarUrl!.substring(6),
                                 fit: BoxFit.cover,
-                                width: 28,
-                                height: 28,
+                                width: 28 * scale,
+                                height: 28 * scale,
                                 errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
                               )
                             : CachedNetworkImage(
                                 imageUrl: tower.character.avatarUrl!,
                                 fit: BoxFit.cover,
-                                width: 28,
-                                height: 28,
+                                width: 28 * scale,
+                                height: 28 * scale,
                                 placeholder: (_, __) => _infoBarFallback(tower, towerColor),
                                 errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
                               ))
@@ -1243,14 +1257,15 @@ class _TdGameScreenState extends State<TdGameScreen>
 
   Widget _infoBarFallback(TdTower tower, Color towerColor) {
     final classIcon = TdClassIcons.assetPath(tower.character.characterClass);
+    final scale = _uiScale;
     return Container(
-      width: 28,
-      height: 28,
+      width: 28 * scale,
+      height: 28 * scale,
       color: towerColor.withValues(alpha: 0.15),
       child: classIcon != null
           ? Image.asset(
               classIcon,
-              width: 20, height: 20, fit: BoxFit.contain,
+              width: 20 * scale, height: 20 * scale, fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => Center(
                 child: Text(
                   tower.character.name.isNotEmpty ? tower.character.name[0].toUpperCase() : '?',
@@ -1509,11 +1524,12 @@ class _TdGameScreenState extends State<TdGameScreen>
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: _game.towers.map((tower) {
               final towerColor = tower.color;
+              final scale = _uiScale;
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 28, height: 28,
+                    width: 28 * scale, height: 28 * scale,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: towerColor.withValues(alpha: 0.5), width: 1.5),
@@ -1523,12 +1539,12 @@ class _TdGameScreenState extends State<TdGameScreen>
                           ? (tower.character.avatarUrl!.startsWith('asset:')
                               ? Image.asset(
                                   tower.character.avatarUrl!.substring(6),
-                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  fit: BoxFit.cover, width: 28 * scale, height: 28 * scale,
                                   errorBuilder: (_, __, ___) => _infoBarFallback(tower, towerColor),
                                 )
                               : CachedNetworkImage(
                                   imageUrl: tower.character.avatarUrl!,
-                                  fit: BoxFit.cover, width: 28, height: 28,
+                                  fit: BoxFit.cover, width: 28 * scale, height: 28 * scale,
                                   placeholder: (_, __) => _infoBarFallback(tower, towerColor),
                                   errorWidget: (_, __, ___) => _infoBarFallback(tower, towerColor),
                                 ))
@@ -1880,6 +1896,7 @@ class _TdGameScreenState extends State<TdGameScreen>
 
   void _showTowerInfo(TdTower tower) {
     final classColor = tower.color;
+    final avatarSize = 48 * _uiScale;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.surfaceElevated,
@@ -1904,7 +1921,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             Row(
               children: [
                 Container(
-                  width: 48, height: 48,
+                  width: avatarSize, height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: classColor, width: 2),
@@ -1914,15 +1931,15 @@ class _TdGameScreenState extends State<TdGameScreen>
                         ? (tower.character.avatarUrl!.startsWith('asset:')
                             ? Image.asset(
                                 tower.character.avatarUrl!.substring(6),
-                                fit: BoxFit.cover, width: 48, height: 48,
-                                errorBuilder: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, 48),
+                                fit: BoxFit.cover, width: avatarSize, height: avatarSize,
+                                errorBuilder: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, avatarSize),
                               )
                             : CachedNetworkImage(
                                 imageUrl: tower.character.avatarUrl!,
-                                fit: BoxFit.cover, width: 48, height: 48,
-                                errorWidget: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, 48),
+                                fit: BoxFit.cover, width: avatarSize, height: avatarSize,
+                                errorWidget: (_, __, ___) => _dialogAvatarFallback(tower.character, classColor, avatarSize),
                               ))
-                        : _dialogAvatarFallback(tower.character, classColor, 48),
+                        : _dialogAvatarFallback(tower.character, classColor, avatarSize),
                   ),
                 ),
                 const SizedBox(width: 14),
