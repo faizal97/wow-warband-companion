@@ -1148,6 +1148,9 @@ class _TdGameScreenState extends State<TdGameScreen>
     final isSupport = tower.archetype == TowerArchetype.support;
     final glowColor = isSupport ? tower.attackColor : towerColor;
     final isDebuffed = tower.isDebuffed;
+    final hasActiveAbility = tower.activeAbilityActive;
+    final hasUltimate = tower.ultimateActive;
+    final isStealthed = tower.isStealthed;
 
     final scale = _uiScale;
     return SizedBox(
@@ -1156,6 +1159,67 @@ class _TdGameScreenState extends State<TdGameScreen>
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // Ultimate active — golden pulsing glow ring (outermost)
+          if (hasUltimate)
+            Container(
+              width: 44 * scale,
+              height: 44 * scale,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.9),
+                  width: 2.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+                    blurRadius: 14,
+                    spreadRadius: 4,
+                  ),
+                  BoxShadow(
+                    color: towerColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
+          // Active ability running — class-colored bright glow
+          if (hasActiveAbility && !hasUltimate)
+            Container(
+              width: 44 * scale,
+              height: 44 * scale,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: towerColor.withValues(alpha: 0.9),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: towerColor.withValues(alpha: 0.45),
+                    blurRadius: 10,
+                    spreadRadius: 3,
+                  ),
+                ],
+              ),
+            ),
+          // Stealth — semi-transparent appearance
+          if (isStealthed)
+            Container(
+              width: 44 * scale,
+              height: 44 * scale,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+            ),
           // Debuff red ring (behind the tower)
           if (isDebuffed)
             Container(
@@ -1183,8 +1247,12 @@ class _TdGameScreenState extends State<TdGameScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: towerColor.withValues(alpha: isDragging ? 0.90 : 0.50),
-                width: 2,
+                color: hasUltimate
+                    ? const Color(0xFFFFD700).withValues(alpha: 0.9)
+                    : hasActiveAbility
+                        ? towerColor.withValues(alpha: 0.9)
+                        : towerColor.withValues(alpha: isDragging ? 0.90 : 0.50),
+                width: (hasUltimate || hasActiveAbility) ? 2.5 : 2,
               ),
               boxShadow: [
                 if (isDragging)
@@ -1193,7 +1261,7 @@ class _TdGameScreenState extends State<TdGameScreen>
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
-                if (isSupport && !isDragging)
+                if (isSupport && !isDragging && !hasUltimate && !hasActiveAbility)
                   BoxShadow(
                     color: glowColor.withValues(alpha: 0.35),
                     blurRadius: 10,
@@ -1279,21 +1347,62 @@ class _TdGameScreenState extends State<TdGameScreen>
   }
 
   Widget _buildTowerWithName(TdTower tower, Color towerColor, {bool isDragging = false}) {
+    // Determine ability status label
+    String? abilityLabel;
+    Color? abilityLabelColor;
+    if (tower.ultimateActive && tower.ultimateAbility != null) {
+      abilityLabel = tower.ultimateAbility!.name;
+      abilityLabelColor = const Color(0xFFFFD700);
+    } else if (tower.activeAbilityActive && tower.activeAbility != null) {
+      abilityLabel = tower.activeAbility!.name;
+      abilityLabelColor = towerColor;
+    } else if (tower.isStealthed) {
+      abilityLabel = 'Stealth';
+      abilityLabelColor = Colors.purple;
+    } else if (tower.currentForm != null) {
+      abilityLabel = '${tower.currentForm![0].toUpperCase()}${tower.currentForm!.substring(1)} Form';
+      abilityLabelColor = towerColor;
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildTowerCircle(tower, towerColor, isDragging: isDragging),
         const SizedBox(height: 2),
-        Text(
-          tower.character.name.length > 7
-              ? '${tower.character.name.substring(0, 6)}..'
-              : tower.character.name,
-          style: GoogleFonts.rajdhani(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: towerColor.withValues(alpha: 0.8),
+        if (abilityLabel != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: abilityLabelColor!.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: abilityLabelColor.withValues(alpha: 0.5),
+                width: 0.5,
+              ),
+            ),
+            child: Text(
+              abilityLabel.length > 10
+                  ? '${abilityLabel.substring(0, 9)}..'
+                  : abilityLabel,
+              style: GoogleFonts.rajdhani(
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+                color: abilityLabelColor,
+                letterSpacing: 0.5,
+              ),
+            ),
+          )
+        else
+          Text(
+            tower.character.name.length > 7
+                ? '${tower.character.name.substring(0, 6)}..'
+                : tower.character.name,
+            style: GoogleFonts.rajdhani(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: towerColor.withValues(alpha: 0.8),
+            ),
           ),
-        ),
       ],
     );
   }
@@ -1302,40 +1411,72 @@ class _TdGameScreenState extends State<TdGameScreen>
   // 6. Tower info bar
   // -----------------------------------------------------------------------
 
-  // ---- Targeting mode state ----
-  bool _isTargeting = false;
-  int _targetingTowerIndex = -1;
-  bool _targetingIsUltimate = false;
-  String _targetingType = ''; // "enemy", "lane", "tower"
-
-  void _startTargeting(int towerIndex, bool isUltimate) {
+  /// Cast an ability with auto-targeting (picks best target heuristically).
+  void _castWithAutoTarget(int towerIndex, bool isUltimate) {
     final tower = _game.towers[towerIndex];
     final ability = isUltimate ? tower.ultimateAbility : tower.activeAbility;
     if (ability == null) return;
-    setState(() {
-      _isTargeting = true;
-      _targetingTowerIndex = towerIndex;
-      _targetingIsUltimate = isUltimate;
-      _targetingType = ability.targeting;
-    });
-  }
 
-  void _cancelTargeting() {
-    setState(() {
-      _isTargeting = false;
-      _targetingTowerIndex = -1;
-    });
-  }
+    final liveEnemies = _game.enemies
+        .where((e) => !e.isDead && e.position >= 0)
+        .toList();
 
-  void _executeTargetedAbility({String? enemyId, int? lane, int? towerIdx}) {
-    if (_targetingIsUltimate) {
-      _game.castUltimate(_targetingTowerIndex,
-          targetEnemyId: enemyId, targetLane: lane, targetTowerIndex: towerIdx);
-    } else {
-      _game.castActiveAbility(_targetingTowerIndex,
-          targetEnemyId: enemyId, targetLane: lane, targetTowerIndex: towerIdx);
+    switch (ability.targeting) {
+      case 'instant':
+        if (isUltimate) {
+          _game.castUltimate(towerIndex);
+        } else {
+          _game.castActiveAbility(towerIndex);
+        }
+      case 'enemy':
+        if (liveEnemies.isEmpty) return;
+        // For execute-type: pick lowest HP% enemy; otherwise highest HP
+        final hasHpCondition = ability.effects.any((e) =>
+            e.params['condition'] is Map &&
+            (e.params['condition'] as Map).containsKey('target_hp_below_pct'));
+        TdEnemy target;
+        if (hasHpCondition) {
+          final sorted = List.of(liveEnemies)
+            ..sort((a, b) => a.hpFraction.compareTo(b.hpFraction));
+          target = sorted.first;
+        } else {
+          final sorted = List.of(liveEnemies)
+            ..sort((a, b) => b.hp.compareTo(a.hp));
+          target = sorted.first;
+        }
+        if (isUltimate) {
+          _game.castUltimate(towerIndex, targetEnemyId: target.id);
+        } else {
+          _game.castActiveAbility(towerIndex, targetEnemyId: target.id);
+        }
+      case 'lane':
+        // Pick lane with most enemies
+        final counts = [0, 0, 0];
+        for (final e in liveEnemies) {
+          counts[e.laneIndex]++;
+        }
+        var bestLane = tower.laneIndex;
+        for (var l = 0; l < 3; l++) {
+          if (counts[l] > counts[bestLane]) bestLane = l;
+        }
+        if (isUltimate) {
+          _game.castUltimate(towerIndex, targetLane: bestLane);
+        } else {
+          _game.castActiveAbility(towerIndex, targetLane: bestLane);
+        }
+      case 'tower':
+        // Pick most debuffed tower, or self
+        final placed = _game.towers.where((t) => t.laneIndex >= 0).toList();
+        final debuffed = placed.where((t) => t.isDebuffed).toList();
+        final targetIdx = debuffed.isNotEmpty
+            ? _game.towers.indexOf(debuffed.first)
+            : towerIndex;
+        if (isUltimate) {
+          _game.castUltimate(towerIndex, targetTowerIndex: targetIdx);
+        } else {
+          _game.castActiveAbility(towerIndex, targetTowerIndex: targetIdx);
+        }
     }
-    _cancelTargeting();
   }
 
   Widget _buildTowerInfoBar() {
@@ -1371,11 +1512,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             behavior: HitTestBehavior.opaque,
             onTap: () {
               if (active == null || !tower.canUseActive) return;
-              if (active.isInstant) {
-                _game.castActiveAbility(index);
-              } else {
-                _startTargeting(index, false);
-              }
+              _castWithAutoTarget(index, false);
             },
             child: SizedBox(
               width: 36 * scale,
@@ -1447,11 +1584,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             behavior: HitTestBehavior.opaque,
             onTap: () {
               if (ultimate == null || !tower.canUseUltimate) return;
-              if (ultimate.isInstant) {
-                _game.castUltimate(index);
-              } else {
-                _startTargeting(index, true);
-              }
+              _castWithAutoTarget(index, true);
             },
             child: SizedBox(
               width: 28 * scale,
