@@ -48,6 +48,8 @@ class TdHeroRegistry {
       passive: hero.passive,
       empoweredPassive: hero.empoweredPassive,
       attackColor: baseDef.attackColor,
+      activeAbility: baseDef.activeAbility,
+      ultimateAbility: baseDef.ultimateAbility,
     );
   }
 }
