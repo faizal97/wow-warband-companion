@@ -213,7 +213,6 @@ class _TdGameScreenState extends State<TdGameScreen>
               ],
             ),
             if (_showVolumeSlider) _buildVolumeSliderOverlay(),
-            if (_isTargeting) _buildTargetingOverlay(),
           ],
         ),
       ),
@@ -528,12 +527,33 @@ class _TdGameScreenState extends State<TdGameScreen>
             );
           }),
         ),
+        // Targeting overlay — rendered inside lanes so positions align
+        if (_isTargeting) ...[
+          // Targeting content (enemy/lane/tower selection)
+          Positioned.fill(
+            child: _targetingType == 'lane'
+                ? _buildLaneTargeting(_targetingTower.color)
+                : _targetingType == 'enemy'
+                    ? _buildEnemyTargeting(_targetingTower.color)
+                    : _buildTowerTargeting(_targetingTower.color),
+          ),
+          // Targeting header (floating at top of lanes)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: _buildTargetingHeader(),
+          ),
+        ],
         // Overlays (only for end states that don't need interaction)
         if (_game.phase == TdGamePhase.victory) _buildVictoryOverlay(),
         if (_game.phase == TdGamePhase.defeat) _buildDefeatOverlay(),
       ],
     );
   }
+
+  // Helper to access the targeting tower from _buildLanes
+  TdTower get _targetingTower => _game.towers[_targetingTowerIndex];
 
   Widget _buildLane(int laneIndex) {
     return Container(
@@ -1480,7 +1500,8 @@ class _TdGameScreenState extends State<TdGameScreen>
   // Targeting overlay — pauses game, shows valid targets
   // -----------------------------------------------------------------------
 
-  Widget _buildTargetingOverlay() {
+  /// Floating header shown during targeting mode (ability name, description, cancel).
+  Widget _buildTargetingHeader() {
     final tower = _game.towers[_targetingTowerIndex];
     final ability = _targetingIsUltimate
         ? tower.ultimateAbility
@@ -1488,119 +1509,101 @@ class _TdGameScreenState extends State<TdGameScreen>
     final towerColor = tower.color;
     final scale = _uiScale;
 
-    return Positioned.fill(
+    return Container(
+      color: Colors.black87,
+      padding: EdgeInsets.symmetric(horizontal: 12 * scale, vertical: 6 * scale),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: ability name + cancel button
-          Container(
-            color: Colors.black87,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Ability indicator dot
-                      Container(
-                        width: 10 * scale,
-                        height: 10 * scale,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _targetingIsUltimate
+          Row(
+            children: [
+              // Ability indicator dot
+              Container(
+                width: 10 * scale,
+                height: 10 * scale,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _targetingIsUltimate
+                      ? const Color(0xFFFFD700)
+                      : towerColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_targetingIsUltimate
                               ? const Color(0xFFFFD700)
-                              : towerColor,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_targetingIsUltimate
-                                      ? const Color(0xFFFFD700)
-                                      : towerColor)
-                                  .withValues(alpha: 0.5),
-                              blurRadius: 6,
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8 * scale),
-                      // Ability name + targeting instruction
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              ability?.name ?? '',
-                              style: GoogleFonts.rajdhani(
-                                fontSize: 16 * scale,
-                                fontWeight: FontWeight.w700,
-                                color: _targetingIsUltimate
-                                    ? const Color(0xFFFFD700)
-                                    : towerColor,
-                              ),
-                            ),
-                            Text(
-                              'Tap ${_targetingType == 'enemy' ? 'an enemy' : _targetingType == 'lane' ? 'a lane' : 'a tower'} to cast',
-                              style: GoogleFonts.rajdhani(
-                                fontSize: 11 * scale,
-                                color: Colors.white60,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Cancel button
-                      GestureDetector(
-                        onTap: _cancelTargeting,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 12 * scale, vertical: 6 * scale),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.6),
-                            ),
-                          ),
-                          child: Text(
-                            'CANCEL',
-                            style: GoogleFonts.rajdhani(
-                              fontSize: 12 * scale,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.red.shade300,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Ability description
-                  if (ability != null && ability.description.isNotEmpty)
-                    Padding(
-                      padding: EdgeInsets.only(top: 4 * scale, left: 18 * scale),
-                      child: Text(
-                        ability.description,
-                        style: GoogleFonts.inter(
-                          fontSize: 11 * scale,
-                          color: Colors.white54,
-                          height: 1.3,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                              : towerColor)
+                          .withValues(alpha: 0.5),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8 * scale),
+              // Ability name + targeting instruction
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ability?.name ?? '',
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 16 * scale,
+                        fontWeight: FontWeight.w700,
+                        color: _targetingIsUltimate
+                            ? const Color(0xFFFFD700)
+                            : towerColor,
                       ),
                     ),
-                ],
+                    Text(
+                      'Tap ${_targetingType == 'enemy' ? 'an enemy' : _targetingType == 'lane' ? 'a lane' : 'a tower'} to cast',
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 11 * scale,
+                        color: Colors.white60,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Cancel button
+              GestureDetector(
+                onTap: _cancelTargeting,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 12 * scale, vertical: 6 * scale),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  child: Text(
+                    'CANCEL',
+                    style: GoogleFonts.rajdhani(
+                      fontSize: 12 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.red.shade300,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          // Ability description
+          if (ability != null && ability.description.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 4 * scale, left: 18 * scale),
+              child: Text(
+                ability.description,
+                style: GoogleFonts.inter(
+                  fontSize: 11 * scale,
+                  color: Colors.white54,
+                  height: 1.3,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          // Target area: depends on targeting type
-          Expanded(
-            child: _targetingType == 'lane'
-                ? _buildLaneTargeting(towerColor)
-                : _targetingType == 'enemy'
-                    ? _buildEnemyTargeting(towerColor)
-                    : _buildTowerTargeting(towerColor),
-          ),
         ],
       ),
     );
