@@ -132,9 +132,11 @@ class TdTower {
 
   void initAbilityCooldowns() {
     if (!_abilitiesInitialized) {
-      // First wave: abilities start ready (no initial cooldown)
+      // First wave: start on full cooldown (must wait before first use)
       _abilitiesInitialized = true;
-      activeCooldownRemaining = 0;
+      if (activeAbility != null) {
+        activeCooldownRemaining = activeAbility!.cooldown;
+      }
     }
     // Subsequent waves: cooldown, active effects, and charge all carry over.
   }
