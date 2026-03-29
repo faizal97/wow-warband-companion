@@ -1697,6 +1697,85 @@ class _TdGameScreenState extends State<TdGameScreen>
         final totalHeight = constraints.maxHeight;
         final laneHeight = totalHeight / 3;
         final laneWidth = constraints.maxWidth;
+        final scale = _uiScale;
+
+        // ── Pass 1: compute raw positions for all enemies ──
+        final n = liveEnemies.length;
+        final outerSizes = List<double>.generate(
+            n, (i) => (liveEnemies[i].isBoss ? 52.0 : 36.0) * scale);
+        final lefts = List<double>.generate(
+            n,
+            (i) => ((1.0 - liveEnemies[i].position) *
+                    (laneWidth - outerSizes[i]))
+                .clamp(0.0, laneWidth - outerSizes[i]));
+        final originalTops = List<double>.generate(
+            n,
+            (i) =>
+                liveEnemies[i].laneIndex * laneHeight +
+                (laneHeight - outerSizes[i]) / 2);
+        final adjustedTops = List<double>.from(originalTops);
+
+        // ── Pass 2: resolve overlaps per lane ──
+        for (var lane = 0; lane < 3; lane++) {
+          final indices = <int>[];
+          for (var i = 0; i < n; i++) {
+            if (liveEnemies[i].laneIndex == lane) indices.add(i);
+          }
+          if (indices.length <= 1) continue;
+
+          indices.sort((a, b) => lefts[a].compareTo(lefts[b]));
+
+          // Cluster enemies whose selector circles overlap horizontally
+          final clusters = <List<int>>[
+            [indices.first]
+          ];
+          for (var j = 1; j < indices.length; j++) {
+            final prev = clusters.last.last;
+            final curr = indices[j];
+            final centerDist = (lefts[curr] + outerSizes[curr] / 2) -
+                (lefts[prev] + outerSizes[prev] / 2);
+            final overlapThresh =
+                (outerSizes[curr] + outerSizes[prev]) / 2;
+            if (centerDist.abs() < overlapThresh) {
+              clusters.last.add(curr);
+            } else {
+              clusters.add([curr]);
+            }
+          }
+
+          // Fan out each overlapping cluster vertically within the lane
+          for (final cluster in clusters) {
+            if (cluster.length <= 1) continue;
+            final maxSize =
+                cluster.map((i) => outerSizes[i]).reduce(max);
+            final spacing = maxSize + 4.0 * scale;
+            final totalSpread = cluster.length * spacing;
+            final laneTop = lane * laneHeight;
+            final startY = laneTop + (laneHeight - totalSpread) / 2;
+
+            for (var k = 0; k < cluster.length; k++) {
+              final idx = cluster[k];
+              adjustedTops[idx] = (startY + k * spacing).clamp(
+                  laneTop, laneTop + laneHeight - outerSizes[idx]);
+            }
+          }
+        }
+
+        // ── Connector lines from offset selectors to actual positions ──
+        final connectorFrom = <Offset>[];
+        final connectorTo = <Offset>[];
+        for (var i = 0; i < n; i++) {
+          if ((adjustedTops[i] - originalTops[i]).abs() > 1.0) {
+            connectorFrom.add(Offset(
+              lefts[i] + outerSizes[i] / 2,
+              adjustedTops[i] + outerSizes[i] / 2,
+            ));
+            connectorTo.add(Offset(
+              lefts[i] + outerSizes[i] / 2,
+              originalTops[i] + outerSizes[i] / 2,
+            ));
+          }
+        }
 
         return Stack(
           children: [
@@ -1704,73 +1783,83 @@ class _TdGameScreenState extends State<TdGameScreen>
             Positioned.fill(
               child: Container(color: Colors.black.withValues(alpha: 0.5)),
             ),
-            // Tappable enemies
-            ...liveEnemies.map((enemy) {
-              final scale = _uiScale;
-              final outerSize = (enemy.isBoss ? 52.0 : 36.0) * scale;
-              final innerSize = (enemy.isBoss ? 44.0 : 28.0) * scale;
-              final left = (1.0 - enemy.position) * (laneWidth - outerSize);
-              final top = enemy.laneIndex * laneHeight +
-                  (laneHeight - outerSize) / 2;
+            // Connector lines (rendered behind selectors)
+            if (connectorFrom.isNotEmpty)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _TargetConnectorPainter(
+                    fromPoints: connectorFrom,
+                    toPoints: connectorTo,
+                    color: towerColor,
+                  ),
+                ),
+              ),
+            // Tappable enemies at adjusted positions
+            for (var i = 0; i < n; i++)
+              Builder(builder: (_) {
+                final enemy = liveEnemies[i];
+                final outerSize = outerSizes[i];
+                final innerSize =
+                    (enemy.isBoss ? 44.0 : 28.0) * scale;
+                final baseColor = enemy.isBoss
+                    ? _game.keystone.dungeon.bossColor
+                    : _game.keystone.dungeon.enemyColor;
 
-              final baseColor = enemy.isBoss
-                  ? _game.keystone.dungeon.bossColor
-                  : _game.keystone.dungeon.enemyColor;
-
-              return Positioned(
-                left: left.clamp(0, laneWidth - outerSize),
-                top: top,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => _confirmTarget(enemyId: enemy.id),
-                  child: Container(
-                    width: outerSize,
-                    height: outerSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: towerColor.withValues(alpha: 0.9),
-                        width: 2.5 * scale,
+                return Positioned(
+                  left: lefts[i],
+                  top: adjustedTops[i],
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _confirmTarget(enemyId: enemy.id),
+                    child: Container(
+                      width: outerSize,
+                      height: outerSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: towerColor.withValues(alpha: 0.9),
+                          width: 2.5 * scale,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: towerColor.withValues(alpha: 0.4),
+                            blurRadius: 10 * scale,
+                            spreadRadius: 2 * scale,
+                          ),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: towerColor.withValues(alpha: 0.4),
-                          blurRadius: 10 * scale,
-                          spreadRadius: 2 * scale,
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Container(
-                        width: innerSize,
-                        height: innerSize,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: baseColor.withValues(alpha: 0.8),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (enemy.isBoss)
-                              Icon(Icons.dangerous_rounded,
-                                  size: 16 * scale,
-                                  color: Colors.white),
-                            Text(
-                              '${(enemy.hpFraction * 100).round()}%',
-                              style: GoogleFonts.rajdhani(
-                                fontSize: (enemy.isBoss ? 13 : 11) * scale,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                      child: Center(
+                        child: Container(
+                          width: innerSize,
+                          height: innerSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: baseColor.withValues(alpha: 0.8),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (enemy.isBoss)
+                                Icon(Icons.dangerous_rounded,
+                                    size: 16 * scale,
+                                    color: Colors.white),
+                              Text(
+                                '${(enemy.hpFraction * 100).round()}%',
+                                style: GoogleFonts.rajdhani(
+                                  fontSize:
+                                      (enemy.isBoss ? 13 : 11) * scale,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
             // Lane dividers
             for (var i = 0; i < 2; i++)
               Positioned(
@@ -1795,6 +1884,18 @@ class _TdGameScreenState extends State<TdGameScreen>
         final totalHeight = constraints.maxHeight;
         final laneHeight = totalHeight / 3;
         final laneWidth = constraints.maxWidth;
+        final size = 48.0 * _uiScale;
+
+        // Count towers per (lane, slot) for vertical stacking
+        final slotCounts = <String, int>{};
+        final slotIndexMap = <int, int>{};
+        for (var i = 0; i < _game.towers.length; i++) {
+          final t = _game.towers[i];
+          if (t.laneIndex < 0) continue;
+          final key = '${t.laneIndex}_${t.slotIndex}';
+          slotIndexMap[i] = slotCounts[key] ?? 0;
+          slotCounts[key] = (slotCounts[key] ?? 0) + 1;
+        }
 
         return Stack(
           children: [
@@ -1802,16 +1903,30 @@ class _TdGameScreenState extends State<TdGameScreen>
             Positioned.fill(
               child: Container(color: Colors.black.withValues(alpha: 0.5)),
             ),
-            // Tappable towers
+            // Tappable towers with vertical stacking for same-slot overlap
             for (var i = 0; i < _game.towers.length; i++)
               if (_game.towers[i].laneIndex >= 0)
                 Builder(builder: (_) {
                   final t = _game.towers[i];
-                  final size = 48.0 * _uiScale;
                   final slotX = (1.0 - t.slotPosition) * laneWidth;
                   final left = (slotX - size / 2).clamp(0.0, laneWidth - size);
-                  final top =
-                      t.laneIndex * laneHeight + (laneHeight - size) / 2;
+
+                  // Vertical stacking when multiple towers share a slot
+                  final key = '${t.laneIndex}_${t.slotIndex}';
+                  final nInSlot = slotCounts[key] ?? 1;
+                  final indexInSlot = slotIndexMap[i] ?? 0;
+                  double top;
+                  if (nInSlot == 1) {
+                    top = t.laneIndex * laneHeight + (laneHeight - size) / 2;
+                  } else {
+                    final spacing = size + 4.0;
+                    final totalSpread = nInSlot * spacing;
+                    final laneTop = t.laneIndex * laneHeight;
+                    final startY = laneTop + (laneHeight - totalSpread) / 2;
+                    top = (startY + indexInSlot * spacing)
+                        .clamp(laneTop, laneTop + laneHeight - size);
+                  }
+
                   final tColor = t.color;
                   final idx = i;
 
@@ -3360,4 +3475,38 @@ class _ChargeRingPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ChargeRingPainter old) =>
       old.progress != progress || old.isReady != isReady;
+}
+
+/// Draws thin connector lines from offset target selectors to actual positions.
+class _TargetConnectorPainter extends CustomPainter {
+  final List<Offset> fromPoints;
+  final List<Offset> toPoints;
+  final Color color;
+
+  _TargetConnectorPainter({
+    required this.fromPoints,
+    required this.toPoints,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final linePaint = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final dotPaint = Paint()
+      ..color = color.withValues(alpha: 0.5)
+      ..style = PaintingStyle.fill;
+
+    for (var i = 0; i < fromPoints.length; i++) {
+      canvas.drawLine(fromPoints[i], toPoints[i], linePaint);
+      // Small dot at actual position
+      canvas.drawCircle(toPoints[i], 3.0, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TargetConnectorPainter old) => true;
 }
