@@ -23,6 +23,12 @@
       "enemyModifiers": [
         { "type": "spectral", "dmgReduction": 0.3, "untilPosition": 0.5 }
       ],
+      "miniBossName": "Emberdawn",
+      "miniBossImage": "assets/td/enemies/windrunner_spire_miniboss.jpg",
+      "miniBossColor": "#FF8C00",
+      "miniBossModifiers": [
+        { "type": "wind_push", "pushAmount": 0.15, "interval": 6.0 }
+      ],
       "bossModifiers": [
         { "type": "fire_zone", "duration": 3.0, "interval": 5.0 }
       ],
@@ -61,6 +67,12 @@
       "enemyModifiers": [
         { "type": "ranged_attack", "damage": 5.0, "interval": 3.0 }
       ],
+      "miniBossName": "Zaen Bladesorrow",
+      "miniBossImage": "assets/td/enemies/murder_row_miniboss.jpg",
+      "miniBossColor": "#CC0000",
+      "miniBossModifiers": [
+        { "type": "knockback_tower", "interval": 5.0 }
+      ],
       "bossModifiers": [
         { "type": "teleport_lanes", "interval": 4.0 }
       ],
@@ -97,6 +109,13 @@
         "params": { "packSize": 3 }
       },
       "enemyModifiers": [],
+      "miniBossName": "The Hoardmonger",
+      "miniBossImage": "assets/td/enemies/den_of_nalorakk_miniboss.jpg",
+      "miniBossColor": "#A0522D",
+      "miniBossModifiers": [
+        { "type": "enrage", "hpThreshold": 0.4, "speedMult": 1.8 },
+        { "type": "summon_adds", "count": 1, "interval": 8.0, "hpFraction": 0.15 }
+      ],
       "bossModifiers": [
         { "type": "enrage", "hpThreshold": 0.3, "speedMult": 2.0 },
         { "type": "summon_adds", "count": 2, "interval": 6.0, "hpFraction": 0.2 }
@@ -123,6 +142,12 @@
       },
       "enemyModifiers": [
         { "type": "resurrect", "chance": 0.2, "hpFraction": 0.4 }
+      ],
+      "miniBossName": "Muro'jin & Nekraxx",
+      "miniBossImage": "assets/td/enemies/maisara_caverns_miniboss.jpg",
+      "miniBossColor": "#2E8B57",
+      "miniBossModifiers": [
+        { "type": "split_on_death", "count": 2, "hpFraction": 0.4 }
       ],
       "bossModifiers": [
         { "type": "split_on_death", "count": 3, "hpFraction": 0.3 }
@@ -162,6 +187,12 @@
       "enemyModifiers": [
         { "type": "shield", "hits": 1, "chance": 0.2 }
       ],
+      "miniBossName": "Arcanotron Custos",
+      "miniBossImage": "assets/td/enemies/magisters_terrace_miniboss.jpg",
+      "miniBossColor": "#7B68EE",
+      "miniBossModifiers": [
+        { "type": "reflect_damage", "duration": 2.5, "interval": 5.0 }
+      ],
       "bossModifiers": [
         { "type": "reflect_damage", "duration": 2.0, "interval": 6.0 }
       ],
@@ -199,6 +230,12 @@
       },
       "enemyModifiers": [
         { "type": "frost_aura", "slowPercent": 0.03, "stackable": true }
+      ],
+      "miniBossName": "Forgemaster Garfrost",
+      "miniBossImage": "assets/td/enemies/pit_of_saron_miniboss.jpg",
+      "miniBossColor": "#5F9EA0",
+      "miniBossModifiers": [
+        { "type": "stacking_damage", "damagePerSecond": 1.5, "rampRate": 1.0 }
       ],
       "bossModifiers": [
         { "type": "knockback_tower", "interval": 5.0 }
@@ -239,6 +276,13 @@
         { "type": "phase", "invulnDuration": 0.5, "interval": 3.0 },
         { "type": "accelerate", "startSpeedMult": 0.5, "endSpeedMult": 1.5 }
       ],
+      "miniBossName": "Zuraal the Ascended",
+      "miniBossImage": "assets/td/enemies/seat_of_the_triumvirate_miniboss.jpg",
+      "miniBossColor": "#8A2BE2",
+      "miniBossModifiers": [
+        { "type": "teleport_lanes", "interval": 5.0 },
+        { "type": "fire_zone", "duration": 2.5, "interval": 6.0 }
+      ],
       "bossModifiers": [
         { "type": "stacking_damage", "damagePerSecond": 2.0, "rampRate": 1.5 }
       ],
@@ -278,6 +322,12 @@
       },
       "enemyModifiers": [
         { "type": "lane_switch", "chance": 0.4, "positionThreshold": 0.5 }
+      ],
+      "miniBossName": "Ranjit",
+      "miniBossImage": "assets/td/enemies/skyreach_miniboss.jpg",
+      "miniBossColor": "#FFD700",
+      "miniBossModifiers": [
+        { "type": "wind_push", "pushAmount": 0.2, "interval": 3.5 }
       ],
       "bossModifiers": [
         { "type": "wind_push", "pushAmount": 0.3, "interval": 4.0 }

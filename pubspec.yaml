@@ -50,6 +50,7 @@ flutter:
     - assets/td/backgrounds/
     - assets/td/icons/
     - assets/td/icons/classes/
+    - assets/td/icons/abilities/
     - assets/td/icons/affixes/
     - assets/td/sfx/
     - assets/td/sfx/class/

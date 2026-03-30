@@ -2,11 +2,13 @@
   "_version": 1,
   "_description": "Global balance constants for the Tower Defense game. Edit these to tune difficulty without changing code.",
   "general": {
-    "startingLives": 20,
-    "totalWaves": 5,
+    "startingLives": 30,
+    "totalWaves": 10,
+    "miniBossWave": 5,
     "baseEnemyHp": 440,
     "baseEnemySpeed": 0.115,
-    "waveHpScalePerWave": 0.16
+    "waveHpScalePerWave": 0.10,
+    "act2HpBonus": 0.15
   },
   "boss": {
     "hpMultiplier": 8.0,
@@ -15,6 +17,14 @@
     "addsHpFraction": 0.45,
     "addsSpeedVariance": 0.05,
     "addsStaggerDistance": 0.12
+  },
+  "miniBoss": {
+    "hpMultiplier": 4.0,
+    "speed": 0.065,
+    "addsCount": 2,
+    "addsHpFraction": 0.35,
+    "addsSpeedVariance": 0.05,
+    "addsStaggerDistance": 0.10
   },
   "enemySpawn": {
     "baseCount": 7,
@@ -28,22 +38,26 @@
     "melee": {
       "damageMult": 1.0,
       "attackInterval": 0.8,
-      "targeting": "closest"
+      "targeting": "closest",
+      "attackRange": 0.20
     },
     "ranged": {
       "damageMult": 1.0,
       "attackInterval": 1.0,
-      "targeting": "furthest"
+      "targeting": "furthest",
+      "attackRange": 0.45
     },
     "support": {
       "damageMult": 0,
       "attackInterval": 2.0,
-      "targeting": "none"
+      "targeting": "none",
+      "attackRange": 0.0
     },
     "aoe": {
       "damageMult": 0.5,
       "attackInterval": 1.3,
-      "targeting": "all_in_lane"
+      "targeting": "all_in_lane",
+      "attackRange": 0.30
     }
   },
   "keystoneScaling": {
@@ -86,8 +100,8 @@
     }
   },
   "valor": {
-    "cleanClearThreshold": 16,
-    "standardClearMin": 8,
+    "cleanClearThreshold": 24,
+    "standardClearMin": 12,
     "cleanClearReward": 3,
     "standardClearReward": 2,
     "scrapedByReward": 1,

@@ -596,6 +596,8 @@ class TdGameState extends ChangeNotifier {
         archetype: tower.archetype,
         classDef: tower.classDef,
         towerLane: tower.laneIndex,
+        towerPosition: tower.slotPosition,
+        attackRange: config.attackRangeFor(tower.archetype),
         enemies: enemyRecords,
         baseDamage: baseDamage,
         attackCount: tower.attackCount,
@@ -760,8 +762,11 @@ class TdGameState extends ChangeNotifier {
     final boss = enemies.where((e) => e.isBoss && !e.isDead).firstOrNull;
     if (boss == null) return;
 
+    final modifiers = currentWave == config.miniBossWave
+        ? keystone.dungeon.miniBossModifiersForLevel(keystone.level)
+        : keystone.dungeon.bossModifiersForLevel(keystone.level);
     final events = BossEffectProcessor.processTick(
-      modifiers: keystone.dungeon.bossModifiersForLevel(keystone.level),
+      modifiers: modifiers,
       state: _bossState,
       bossHpFraction: boss.hpFraction,
       bossLane: boss.laneIndex,
@@ -1565,9 +1570,18 @@ class TdGameState extends ChangeNotifier {
   // Wave spawning
   // -----------------------------------------------------------------------
 
+  /// Whether [wave] is in act 2 (after mini-boss).
+  bool _isAct2(int wave) => wave > config.miniBossWave;
+
   void _spawnWave() {
     final dungeon = keystone.dungeon;
-    final waveScale = 1.0 + (currentWave - 1) * config.waveHpScalePerWave;
+    var waveScale = 1.0 + (currentWave - 1) * config.waveHpScalePerWave;
+
+    // Act 2 HP bonus: enemies are individually tougher
+    if (_isAct2(currentWave)) {
+      waveScale *= (1.0 + config.act2HpBonus);
+    }
+
     final baseHp =
         config.baseEnemyHp * keystone.hpMultiplierWith(config) * dungeon.hpMultiplier * waveScale;
     final baseSpeed = config.baseEnemySpeed * dungeon.speedMultiplier;
@@ -1584,9 +1598,16 @@ class TdGameState extends ChangeNotifier {
     _logCombat('── Wave $currentWave/$totalWaves started ──', _logColorWave);
 
     if (currentWave == totalWaves) {
+      // Final boss (wave 10)
       _spawnBossWave(baseHp, baseSpeed, dungeon);
       _emitSfx(TdSfxEventType.bossSpawn);
       _logCombat('★ BOSS SPAWNS!', _logColorBoss);
+    } else if (currentWave == config.miniBossWave) {
+      // Mini-boss (wave 5)
+      _spawnMiniBossWave(baseHp, baseSpeed, dungeon);
+      _emitSfx(TdSfxEventType.bossSpawn);
+      final name = dungeon.miniBossName ?? 'MINI-BOSS';
+      _logCombat('★ $name SPAWNS!', _logColorBoss);
     } else {
       _spawnRegularWave(baseHp, baseSpeed, dungeon);
     }
@@ -1597,8 +1618,12 @@ class TdGameState extends ChangeNotifier {
 
   void _spawnRegularWave(
       double baseHp, double baseSpeed, TdDungeonDef dungeon) {
+    // Act 2 count reset: wave 6 uses effective wave 1, wave 7 uses 2, etc.
+    final effectiveWave = _isAct2(currentWave)
+        ? currentWave - config.miniBossWave
+        : currentWave;
     final count =
-        (config.spawnBaseCount + currentWave * config.spawnCountPerWave + dungeon.enemyCountModifier)
+        (config.spawnBaseCount + effectiveWave * config.spawnCountPerWave + dungeon.enemyCountModifier)
             .clamp(config.spawnMinCount, config.spawnMaxCount);
     final hpMod = keystone.hasFortified ? config.fortifiedHpMult : 1.0;
 
@@ -1656,6 +1681,42 @@ class TdGameState extends ChangeNotifier {
         modifiers: modifiers,
         modifierState: modifierState,
       )..position = -(i + 1) * config.bossAddsStaggerDistance);
+    }
+  }
+
+  void _spawnMiniBossWave(double baseHp, double baseSpeed, TdDungeonDef dungeon) {
+    final miniBossHp = baseHp * config.miniBossHpMultiplier;
+    final miniBossSpeed = config.miniBossSpeed * dungeon.speedMultiplier;
+
+    final laneRng = Random(_nextWaveSeed);
+    final bossLane = laneRng.nextInt(3);
+
+    // Initialize boss state from dungeon mini-boss modifiers
+    _bossState = BossEffectProcessor.initBossState(dungeon.miniBossModifiersForLevel(keystone.level));
+
+    enemies.add(TdEnemy(
+      id: 'e${_enemyIdCounter++}',
+      maxHp: miniBossHp,
+      speed: miniBossSpeed,
+      laneIndex: bossLane,
+      isBoss: true,
+    ));
+
+    // Mini-boss adds (fewer than final boss)
+    for (var i = 0; i < config.miniBossAddsCount; i++) {
+      final modifiers =
+          EnemyEffectProcessor.rollSpawnModifiers(
+              dungeon.enemyModifiersForLevel(keystone.level), _rng);
+      final modifierState = EnemyEffectProcessor.initModifierState(modifiers);
+
+      enemies.add(TdEnemy(
+        id: 'e${_enemyIdCounter++}',
+        maxHp: baseHp * config.miniBossAddsHpFraction,
+        speed: baseSpeed + _rng.nextDouble() * config.miniBossAddsSpeedVariance,
+        laneIndex: laneRng.nextInt(3),
+        modifiers: modifiers,
+        modifierState: modifierState,
+      )..position = -(i + 1) * config.miniBossAddsStaggerDistance);
     }
   }
 
@@ -1721,6 +1782,7 @@ class TdGameState extends ChangeNotifier {
     final previewRng = Random(_nextWaveSeed);
 
     final isBossWave = nextWave == totalWaves;
+    final isMiniBossWave = nextWave == config.miniBossWave;
     if (isBossWave) {
       // Boss wave: 1 boss + adds
       final bossLane = previewRng.nextInt(3);
@@ -1728,9 +1790,20 @@ class TdGameState extends ChangeNotifier {
       for (var i = 0; i < config.bossAddsCount; i++) {
         counts[previewRng.nextInt(3)]++;
       }
+    } else if (isMiniBossWave) {
+      // Mini-boss wave: 1 mini-boss + fewer adds
+      final bossLane = previewRng.nextInt(3);
+      counts[bossLane]++;
+      for (var i = 0; i < config.miniBossAddsCount; i++) {
+        counts[previewRng.nextInt(3)]++;
+      }
     } else {
+      // Act 2 count reset
+      final effectiveWave = nextWave > config.miniBossWave
+          ? nextWave - config.miniBossWave
+          : nextWave;
       final enemyCount =
-          (config.spawnBaseCount + nextWave * config.spawnCountPerWave + keystone.dungeon.enemyCountModifier)
+          (config.spawnBaseCount + effectiveWave * config.spawnCountPerWave + keystone.dungeon.enemyCountModifier)
               .clamp(config.spawnMinCount, config.spawnMaxCount);
       final pattern = keystone.dungeon.lanePattern;
       for (var i = 0; i < enemyCount; i++) {
@@ -1779,8 +1852,11 @@ class TdGameState extends ChangeNotifier {
 
       // Check boss split on death
       if (e.isBoss) {
+        final deathModifiers = currentWave == config.miniBossWave
+            ? keystone.dungeon.miniBossModifiersForLevel(keystone.level)
+            : keystone.dungeon.bossModifiersForLevel(keystone.level);
         final split = BossEffectProcessor.processOnDeath(
-          modifiers: keystone.dungeon.bossModifiersForLevel(keystone.level),
+          modifiers: deathModifiers,
           bossMaxHp: e.maxHp,
           bossSpeed: e.speed,
           bossLane: e.laneIndex,
@@ -1799,7 +1875,10 @@ class TdGameState extends ChangeNotifier {
           _logCombat('Boss splits into ${split.count} fragments!', _logColorBoss);
         }
         _emitSfx(TdSfxEventType.bossDeath);
-        _logCombat('★ BOSS DEFEATED!', _logColorWave);
+        final bossLabel = currentWave == config.miniBossWave
+            ? (keystone.dungeon.miniBossName ?? 'MINI-BOSS')
+            : 'BOSS';
+        _logCombat('★ $bossLabel DEFEATED!', _logColorWave);
       } else {
         _emitSfx(TdSfxEventType.enemyDeath);
         _logCombat('Enemy slain', _logColorDeath);

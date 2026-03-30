@@ -58,6 +58,7 @@
       "attackColor": "#C69B6D",
       "activeAbility": {
         "name": "Execute",
+        "icon": "execute",
         "description": "Deal 3x damage to an enemy below 30% HP. Instant kill below 10%.",
         "targeting": "enemy",
         "cooldown": 10.0,
@@ -69,6 +70,7 @@
       },
       "ultimateAbility": {
         "name": "Bladestorm",
+        "icon": "bladestorm",
         "description": "Deal heavy damage to ALL enemies in ALL lanes for 4s.",
         "targeting": "instant",
         "duration": 4.0,
@@ -95,6 +97,7 @@
       "attackColor": "#FFF468",
       "activeAbility": {
         "name": "Vanish",
+        "icon": "vanish",
         "description": "Disappear for 3s: immune to enemy attacks and debuffs. Next attack is Ambush: 4x damage + 1.5s stun.",
         "targeting": "instant",
         "cooldown": 10.0,
@@ -106,6 +109,7 @@
       },
       "ultimateAbility": {
         "name": "Shadow Blades",
+        "icon": "shadow_blades",
         "description": "For 8s: attacks deal 2x damage and build combo points. At 5 points, auto-Eviscerate for 6x damage.",
         "targeting": "instant",
         "duration": 8.0,
@@ -136,6 +140,7 @@
       "attackColor": "#C41E3A",
       "activeAbility": {
         "name": "Death Grip",
+        "icon": "death_grip",
         "description": "Pull target enemy back to the start of its lane.",
         "targeting": "enemy",
         "cooldown": 15.0,
@@ -146,6 +151,7 @@
       },
       "ultimateAbility": {
         "name": "Army of the Dead",
+        "icon": "army_of_the_dead",
         "description": "Summon ghouls that block all enemy movement in a lane for 6s. Blocked enemies take DoT.",
         "targeting": "lane",
         "duration": 6.0,
@@ -176,6 +182,7 @@
       "attackColor": "#F48CBA",
       "activeAbility": {
         "name": "Blessing of Protection",
+        "icon": "blessing_of_protection",
         "description": "Grant an allied tower immunity to damage and debuffs for 5s.",
         "targeting": "tower",
         "cooldown": 18.0,
@@ -187,6 +194,7 @@
       },
       "ultimateAbility": {
         "name": "Avenging Wrath",
+        "icon": "avenging_wrath",
         "description": "Golden wings for 10s: ALL towers gain +25% damage and immunity to debuffs.",
         "targeting": "instant",
         "duration": 10.0,
@@ -214,6 +222,7 @@
       "attackColor": "#00FF98",
       "activeAbility": {
         "name": "Fists of Fury",
+        "icon": "fists_of_fury",
         "description": "Channel rapid attacks for 3s: 5 hits at 0.6x damage each. Immune to debuffs during channel.",
         "targeting": "instant",
         "cooldown": 12.0,
@@ -224,6 +233,7 @@
       },
       "ultimateAbility": {
         "name": "Touch of Death",
+        "icon": "touch_of_death",
         "description": "Instantly kill any non-boss enemy. Deal 15% max HP to bosses.",
         "targeting": "enemy",
         "charge": { "trigger": "on_attack", "amount": 1, "max": 15 },
@@ -250,6 +260,7 @@
       "attackColor": "#A330C9",
       "activeAbility": {
         "name": "Eye Beam",
+        "icon": "eye_beam",
         "description": "Channel a fel beam down an entire lane for 3s, dealing continuous damage to all enemies.",
         "targeting": "lane",
         "cooldown": 14.0,
@@ -260,6 +271,7 @@
       },
       "ultimateAbility": {
         "name": "Metamorphosis",
+        "icon": "metamorphosis",
         "description": "Transform for 8s: +50% damage, +50% attack speed, attacks hit ALL lanes.",
         "targeting": "instant",
         "duration": 8.0,
@@ -288,6 +300,7 @@
       "attackColor": "#3FC7EB",
       "activeAbility": {
         "name": "Meteor",
+        "icon": "meteor",
         "description": "Call down a meteor on a lane dealing 5x AoE damage. Leaves a burn zone for 4s.",
         "targeting": "lane",
         "cooldown": 14.0,
@@ -299,6 +312,7 @@
       },
       "ultimateAbility": {
         "name": "Combustion",
+        "icon": "combustion",
         "description": "For 8s: ALL attacks auto-crit at 2.5x and splash to nearby enemies in the same lane.",
         "targeting": "instant",
         "duration": 8.0,
@@ -326,6 +340,7 @@
       "attackColor": "#AAD372",
       "activeAbility": {
         "name": "Aimed Shot",
+        "icon": "aimed_shot",
         "description": "Precise shot dealing 4x damage. Ignores shield and phase enemy modifiers.",
         "targeting": "enemy",
         "cooldown": 10.0,
@@ -337,6 +352,7 @@
       },
       "ultimateAbility": {
         "name": "Bestial Wrath",
+        "icon": "bestial_wrath",
         "description": "Summon a spirit beast for 8s that attacks the furthest enemy in any lane every 0.5s at 1.5x damage. Tower gains +30% attack speed.",
         "targeting": "instant",
         "duration": 8.0,
@@ -367,6 +383,7 @@
       "attackColor": "#8788EE",
       "activeAbility": {
         "name": "Chaos Bolt",
+        "icon": "chaos_bolt",
         "description": "Fire chaotic energy dealing 4x damage, always crits. Spreads DoTs on target to 2 nearby enemies.",
         "targeting": "enemy",
         "cooldown": 14.0,
@@ -379,6 +396,7 @@
       },
       "ultimateAbility": {
         "name": "Summon Infernal",
+        "icon": "summon_infernal",
         "description": "Call down an Infernal that stuns enemies 2s on impact, then pulses AoE damage for 8s.",
         "targeting": "lane",
         "duration": 8.0,
@@ -406,6 +424,7 @@
       "attackColor": "#33937F",
       "activeAbility": {
         "name": "Fire Breath",
+        "icon": "fire_breath",
         "description": "Breathe fire down a lane dealing damage to all enemies + burn DoT. Damage scales with charge (1x-3x).",
         "targeting": "lane",
         "cooldown": 10.0,
@@ -417,6 +436,7 @@
       },
       "ultimateAbility": {
         "name": "Deep Breath",
+        "icon": "deep_breath",
         "description": "Fly over a lane dealing massive damage and knocking enemies back. 50% slow for 4s.",
         "targeting": "lane",
         "charge": { "trigger": "on_attack", "amount": 3, "max": 24 },
@@ -444,6 +464,7 @@
       "attackColor": "#E0E0E0",
       "activeAbility": {
         "name": "Power Infusion",
+        "icon": "power_infusion",
         "description": "Grant a tower +50% attack speed for 6s.",
         "targeting": "tower",
         "cooldown": 15.0,
@@ -454,6 +475,7 @@
       },
       "ultimateAbility": {
         "name": "Voidform",
+        "icon": "voidform",
         "description": "Transform for 10s: switch to Ranged archetype, attack highest-HP enemy in any lane. +10% stacking damage per consecutive hit.",
         "targeting": "instant",
         "duration": 10.0,
@@ -480,6 +502,7 @@
       "attackColor": "#FF7C0A",
       "activeAbility": {
         "name": "Shapeshift",
+        "icon": "shapeshift",
         "description": "Toggle forms. Bear: melee +50% fortify. Cat: melee +40% attack speed +20% crit. Reverts to Support after 6s.",
         "targeting": "instant",
         "cooldown": 8.0,
@@ -509,6 +532,7 @@
       },
       "ultimateAbility": {
         "name": "Convoke the Spirits",
+        "icon": "convoke_the_spirits",
         "description": "Channel 4s: cast 16 random effects — damage, DoTs, cleanses, buffs — across ALL lanes.",
         "targeting": "instant",
         "duration": 4.0,
@@ -546,6 +570,7 @@
       "attackColor": "#0070DD",
       "activeAbility": {
         "name": "Lava Burst",
+        "icon": "lava_burst",
         "description": "Guaranteed-crit lava bolt dealing 4x damage. If target has active DoT, deal 6x instead.",
         "targeting": "enemy",
         "cooldown": 12.0,
@@ -557,6 +582,7 @@
       },
       "ultimateAbility": {
         "name": "Bloodlust",
+        "icon": "bloodlust",
         "description": "ALL towers gain +30% attack speed for 10s. All active ability cooldowns reduced by 50%.",
         "targeting": "instant",
         "duration": 10.0,

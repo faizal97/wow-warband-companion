@@ -88,9 +88,17 @@ class TdDungeonBriefingScreen extends StatelessWidget {
           _buildEnemyIntel(),
           const SizedBox(height: 24),
 
-          // Section 3: Boss Mechanics
+          // Section 3: Mini-Boss
+          if (dungeon.miniBossModifiers.isNotEmpty) ...[
+            _buildSectionHeader('MINI-BOSS — WAVE 5', Icons.star_rounded),
+            const SizedBox(height: 12),
+            _buildMiniBossSection(),
+            const SizedBox(height: 24),
+          ],
+
+          // Section 4: Final Boss Mechanics
           if (dungeon.bossModifiers.isNotEmpty) ...[
-            _buildSectionHeader('BOSS MECHANICS', Icons.warning_amber_rounded),
+            _buildSectionHeader('FINAL BOSS — WAVE 10', Icons.warning_amber_rounded),
             const SizedBox(height: 12),
             _buildBossMechanics(),
             const SizedBox(height: 24),
@@ -281,12 +289,169 @@ class TdDungeonBriefingScreen extends StatelessWidget {
   // Section 3: Boss Mechanics
   // -------------------------------------------------------------------------
 
+  Widget _buildMiniBossSection() {
+    return Column(
+      children: [
+        // Mini-boss header card with image and name
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: dungeon.miniBossColor.withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              if (dungeon.miniBossImage != null) ...[
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: dungeon.miniBossColor.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: dungeon.miniBossColor.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9),
+                    child: Image.asset(
+                      dungeon.miniBossImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.star_rounded,
+                        color: dungeon.miniBossColor,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (dungeon.miniBossName ?? 'MINI-BOSS').toUpperCase(),
+                      style: GoogleFonts.rajdhani(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: dungeon.miniBossColor,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Appears at Wave 5 \u2014 weaker than the final boss but with unique mechanics.',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppTheme.textTertiary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Mini-boss modifier cards
+        ...dungeon.miniBossModifiers.map((mod) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildModifierCard(mod, dungeon.miniBossColor),
+        )),
+      ],
+    );
+  }
+
   Widget _buildBossMechanics() {
     return Column(
-      children: dungeon.bossModifiers.map((mod) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _buildModifierCard(mod, dungeon.bossColor),
-      )).toList(),
+      children: [
+        // Final boss header card with image
+        if (dungeon.bossImage != null) ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: dungeon.bossColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: dungeon.bossColor.withValues(alpha: 0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: dungeon.bossColor.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9),
+                    child: Image.asset(
+                      dungeon.bossImage!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Icon(
+                        TdIcons.getIcon(dungeon.bossIcon),
+                        color: dungeon.bossColor,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FINAL BOSS',
+                        style: GoogleFonts.rajdhani(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: dungeon.bossColor,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Appears at Wave 10 \u2014 the ultimate challenge. Tyrannical affix increases boss HP.',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppTheme.textTertiary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        // Boss modifier cards
+        ...dungeon.bossModifiers.map((mod) => Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: _buildModifierCard(mod, dungeon.bossColor),
+        )),
+      ],
     );
   }
 
@@ -600,23 +765,49 @@ class TdDungeonBriefingScreen extends StatelessWidget {
       tips.add('Zerg rush \u2014 AoE towers and support buffers are essential.');
     }
 
-    // Boss tips
+    // Mini-boss tips (wave 5)
+    if (dungeon.miniBossModifiers.isNotEmpty) {
+      final mbName = dungeon.miniBossName ?? 'Mini-boss';
+      final mbHasWindPush = dungeon.miniBossModifiers.any((m) => m.type == 'wind_push');
+      final mbHasKnockback = dungeon.miniBossModifiers.any((m) => m.type == 'knockback_tower');
+      final mbHasSplit = dungeon.miniBossModifiers.any((m) => m.type == 'split_on_death');
+      final mbHasReflect = dungeon.miniBossModifiers.any((m) => m.type == 'reflect_damage');
+      final mbHasStacking = dungeon.miniBossModifiers.any((m) => m.type == 'stacking_damage');
+
+      if (mbHasWindPush) {
+        tips.add('$mbName pushes enemies forward \u2014 place towers near lane ends to catch pushed enemies.');
+      }
+      if (mbHasKnockback) {
+        tips.add('$mbName displaces towers \u2014 reposition after wave 5 before starting Act 2.');
+      }
+      if (mbHasSplit) {
+        tips.add('$mbName splits on death \u2014 save AoE cooldowns for the split.');
+      }
+      if (mbHasReflect) {
+        tips.add('$mbName reflects damage \u2014 watch for reflect windows before committing abilities.');
+      }
+      if (mbHasStacking) {
+        tips.add('$mbName deals stacking damage \u2014 burn it down fast before damage ramps.');
+      }
+    }
+
+    // Final boss tips (wave 10)
     final hasEnrage = dungeon.bossModifiers.any((m) => m.type == 'enrage');
     final hasSplit = dungeon.bossModifiers.any((m) => m.type == 'split_on_death');
     final hasReflect = dungeon.bossModifiers.any((m) => m.type == 'reflect_damage');
     final hasKnockback = dungeon.bossModifiers.any((m) => m.type == 'knockback_tower');
 
     if (hasEnrage) {
-      tips.add('Boss enrages at low HP \u2014 save burst damage for the final phase.');
+      tips.add('Final boss enrages at low HP \u2014 save burst damage for the final phase.');
     }
     if (hasSplit) {
-      tips.add('Boss splits on death \u2014 keep AoE towers ready for the split phase.');
+      tips.add('Final boss splits on death \u2014 keep AoE towers ready for the split phase.');
     }
     if (hasReflect) {
-      tips.add('Boss reflects damage \u2014 pull back high-DPS towers during reflect phases.');
+      tips.add('Final boss reflects damage \u2014 pull back high-DPS towers during reflect phases.');
     }
     if (hasKnockback) {
-      tips.add('Boss knocks back towers \u2014 keep a Support class in a safe lane to maintain buffs.');
+      tips.add('Final boss knocks back towers \u2014 keep a Support class in a safe lane to maintain buffs.');
     }
 
     if (tips.isEmpty) {

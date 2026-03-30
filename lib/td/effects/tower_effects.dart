@@ -94,6 +94,8 @@ class TowerEffectProcessor {
     required TowerArchetype archetype,
     required TdClassDef classDef,
     required int towerLane,
+    required double towerPosition,
+    required double attackRange,
     required List<({String id, double hp, double position, int lane})> enemies,
     required double baseDamage,
     required int attackCount,
@@ -154,6 +156,13 @@ class TowerEffectProcessor {
       return e.lane == towerLane;
     }).toList();
 
+    // -- 3b. Filter by attack range ----------------------------------------
+    if (attackRange > 0) {
+      candidateEnemies = candidateEnemies
+          .where((e) => (e.position - towerPosition).abs() <= attackRange)
+          .toList();
+    }
+
     if (candidateEnemies.isEmpty) {
       return const AttackResult();
     }
@@ -166,6 +175,8 @@ class TowerEffectProcessor {
         enemies: candidateEnemies,
         baseDamage: baseDamage,
         towerLane: towerLane,
+        towerPosition: towerPosition,
+        attackRange: attackRange,
         activeEffects: activeEffects,
         chargeEffect: chargeEffect,
         rng: rng,
@@ -177,9 +188,13 @@ class TowerEffectProcessor {
 
     // Override targeting for transforms (e.g. Voidform highest_hp_any_lane)
     if (targetingOverride == 'highest_hp_any_lane') {
-      // Target highest HP enemy across all lanes
-      final allEnemies = enemies.where((e) => e.hp > 0).toList()
-        ..sort((a, b) => b.hp.compareTo(a.hp));
+      var allEnemies = enemies.where((e) => e.hp > 0).toList();
+      if (attackRange > 0) {
+        allEnemies = allEnemies
+            .where((e) => (e.position - towerPosition).abs() <= attackRange)
+            .toList();
+      }
+      allEnemies.sort((a, b) => b.hp.compareTo(a.hp));
       targets = allEnemies.isNotEmpty ? [allEnemies.first] : [];
       if (targets.isEmpty) return const AttackResult();
     } else {
@@ -305,6 +320,8 @@ class TowerEffectProcessor {
     required List<({String id, double hp, double position, int lane})> enemies,
     required double baseDamage,
     required int towerLane,
+    required double towerPosition,
+    required double attackRange,
     required List<EffectDef> activeEffects,
     required EffectDef? chargeEffect,
     required Random rng,
@@ -313,6 +330,14 @@ class TowerEffectProcessor {
             ?.map((e) => (e as num).toDouble())
             .toList() ??
         [1.0];
+
+    // Filter by range
+    if (attackRange > 0) {
+      enemies = enemies
+          .where((e) => (e.position - towerPosition).abs() <= attackRange)
+          .toList();
+    }
+    if (enemies.isEmpty) return const AttackResult();
 
     // Sort all candidates by position DESC (closest to goal first).
     enemies.sort((a, b) => b.position.compareTo(a.position));

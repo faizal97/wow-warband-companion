@@ -160,6 +160,9 @@ class AbilityDef {
   final String name;
   final String description;
 
+  /// Icon asset filename (without extension), e.g. "execute".
+  final String? icon;
+
   /// Targeting type: "instant", "enemy", "lane", "tower".
   final String targeting;
 
@@ -181,6 +184,7 @@ class AbilityDef {
   const AbilityDef({
     required this.name,
     this.description = '',
+    this.icon,
     this.targeting = 'instant',
     this.cooldown = 10.0,
     this.initialCooldownPct = 0.33,
@@ -197,6 +201,7 @@ class AbilityDef {
     return AbilityDef(
       name: json['name'] as String? ?? 'Unknown',
       description: json['description'] as String? ?? '',
+      icon: json['icon'] as String?,
       targeting: json['targeting'] as String? ?? 'instant',
       cooldown: (json['cooldown'] as num?)?.toDouble() ?? 10.0,
       initialCooldownPct:
@@ -349,6 +354,10 @@ class TdDungeonDef {
   final LanePatternDef lanePattern;
   final List<EffectDef> enemyModifiers;
   final List<EffectDef> bossModifiers;
+  final String? miniBossName;
+  final String? miniBossImage;
+  final Color miniBossColor;
+  final List<EffectDef> miniBossModifiers;
   final ParticleDef? particles;
 
   /// Level-based modifier overrides. Keys are keystone levels (as strings).
@@ -373,6 +382,10 @@ class TdDungeonDef {
     this.lanePattern = const LanePatternDef(type: 'spread'),
     this.enemyModifiers = const [],
     this.bossModifiers = const [],
+    this.miniBossName,
+    this.miniBossImage,
+    this.miniBossColor = const Color(0xFFFF8800),
+    this.miniBossModifiers = const [],
     this.particles,
     this.modifierScaling = const {},
   });
@@ -389,6 +402,11 @@ class TdDungeonDef {
       }
     }
     return best ?? enemyModifiers;
+  }
+
+  /// Get mini-boss modifiers (no level scaling for now).
+  List<EffectDef> miniBossModifiersForLevel(int keystoneLevel) {
+    return miniBossModifiers;
   }
 
   /// Get boss modifiers scaled for the given keystone level.
@@ -426,6 +444,10 @@ class TdDungeonDef {
           : const LanePatternDef(type: 'spread'),
       enemyModifiers: _parseEffectList(json['enemyModifiers'] ?? json['enemy_modifiers']),
       bossModifiers: _parseEffectList(json['bossModifiers'] ?? json['boss_modifiers']),
+      miniBossName: (json['miniBossName'] ?? json['mini_boss_name']) as String?,
+      miniBossImage: (json['miniBossImage'] ?? json['mini_boss_image']) as String?,
+      miniBossColor: _parseColor((json['miniBossColor'] ?? json['mini_boss_color']) as String?),
+      miniBossModifiers: _parseEffectList(json['miniBossModifiers'] ?? json['mini_boss_modifiers']),
       particles: json['particles'] != null
           ? ParticleDef.fromJson(Map<String, dynamic>.from(json['particles'] as Map))
           : null,

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 
+import 'effect_types.dart';
+
 /// Global balance constants loaded from assets/td/balance.json.
 /// All tuning knobs for the TD game in one place — edit the JSON
 /// to patch balance without changing code.
@@ -8,9 +10,11 @@ class TdBalanceConfig {
   // General
   final int startingLives;
   final int totalWaves;
+  final int miniBossWave;
   final double baseEnemyHp;
   final double baseEnemySpeed;
   final double waveHpScalePerWave;
+  final double act2HpBonus;
 
   // Boss
   final double bossHpMultiplier;
@@ -19,6 +23,14 @@ class TdBalanceConfig {
   final double bossAddsHpFraction;
   final double bossAddsSpeedVariance;
   final double bossAddsStaggerDistance;
+
+  // Mini-boss
+  final double miniBossHpMultiplier;
+  final double miniBossSpeed;
+  final int miniBossAddsCount;
+  final double miniBossAddsHpFraction;
+  final double miniBossAddsSpeedVariance;
+  final double miniBossAddsStaggerDistance;
 
   // Enemy spawn
   final int spawnBaseCount;
@@ -38,6 +50,11 @@ class TdBalanceConfig {
   final double rangedAttackInterval;
   final double supportAttackInterval;
   final double aoeAttackInterval;
+
+  // Archetype attack ranges
+  final double meleeAttackRange;
+  final double rangedAttackRange;
+  final double aoeAttackRange;
 
   // Keystone scaling
   final int linearPhaseEnd;
@@ -79,17 +96,25 @@ class TdBalanceConfig {
   final int sixthTowerLevel;
 
   const TdBalanceConfig({
-    this.startingLives = 20,
-    this.totalWaves = 5,
+    this.startingLives = 30,
+    this.totalWaves = 10,
+    this.miniBossWave = 5,
     this.baseEnemyHp = 260,
     this.baseEnemySpeed = 0.10,
-    this.waveHpScalePerWave = 0.12,
+    this.waveHpScalePerWave = 0.10,
+    this.act2HpBonus = 0.15,
     this.bossHpMultiplier = 6.0,
     this.bossSpeed = 0.04,
     this.bossAddsCount = 3,
     this.bossAddsHpFraction = 0.4,
     this.bossAddsSpeedVariance = 0.05,
     this.bossAddsStaggerDistance = 0.12,
+    this.miniBossHpMultiplier = 4.0,
+    this.miniBossSpeed = 0.065,
+    this.miniBossAddsCount = 2,
+    this.miniBossAddsHpFraction = 0.35,
+    this.miniBossAddsSpeedVariance = 0.05,
+    this.miniBossAddsStaggerDistance = 0.10,
     this.spawnBaseCount = 6,
     this.spawnCountPerWave = 2,
     this.spawnMinCount = 4,
@@ -103,6 +128,9 @@ class TdBalanceConfig {
     this.rangedAttackInterval = 1.0,
     this.supportAttackInterval = 2.0,
     this.aoeAttackInterval = 1.3,
+    this.meleeAttackRange = 0.20,
+    this.rangedAttackRange = 0.45,
+    this.aoeAttackRange = 0.30,
     this.linearPhaseEnd = 20,
     this.linearRate = 0.10,
     this.exponentialBase = 2.8,
@@ -151,6 +179,7 @@ class TdBalanceConfig {
   static TdBalanceConfig fromJson(Map<String, dynamic> json) {
     final general = json['general'] as Map<String, dynamic>? ?? {};
     final boss = json['boss'] as Map<String, dynamic>? ?? {};
+    final miniBoss = json['miniBoss'] as Map<String, dynamic>? ?? {};
     final spawn = json['enemySpawn'] as Map<String, dynamic>? ?? {};
     final archetypes = json['archetypes'] as Map<String, dynamic>? ?? {};
     final melee = archetypes['melee'] as Map<String, dynamic>? ?? {};
@@ -170,16 +199,24 @@ class TdBalanceConfig {
 
     return TdBalanceConfig(
       startingLives: (general['startingLives'] as num?)?.toInt() ?? 25,
-      totalWaves: (general['totalWaves'] as num?)?.toInt() ?? 5,
+      totalWaves: (general['totalWaves'] as num?)?.toInt() ?? 10,
+      miniBossWave: (general['miniBossWave'] as num?)?.toInt() ?? 5,
       baseEnemyHp: (general['baseEnemyHp'] as num?)?.toDouble() ?? 200,
       baseEnemySpeed: (general['baseEnemySpeed'] as num?)?.toDouble() ?? 0.10,
       waveHpScalePerWave: (general['waveHpScalePerWave'] as num?)?.toDouble() ?? 0.2,
+      act2HpBonus: (general['act2HpBonus'] as num?)?.toDouble() ?? 0.30,
       bossHpMultiplier: (boss['hpMultiplier'] as num?)?.toDouble() ?? 6.0,
       bossSpeed: (boss['speed'] as num?)?.toDouble() ?? 0.04,
       bossAddsCount: (boss['addsCount'] as num?)?.toInt() ?? 3,
       bossAddsHpFraction: (boss['addsHpFraction'] as num?)?.toDouble() ?? 0.4,
       bossAddsSpeedVariance: (boss['addsSpeedVariance'] as num?)?.toDouble() ?? 0.05,
       bossAddsStaggerDistance: (boss['addsStaggerDistance'] as num?)?.toDouble() ?? 0.12,
+      miniBossHpMultiplier: (miniBoss['hpMultiplier'] as num?)?.toDouble() ?? 4.0,
+      miniBossSpeed: (miniBoss['speed'] as num?)?.toDouble() ?? 0.065,
+      miniBossAddsCount: (miniBoss['addsCount'] as num?)?.toInt() ?? 2,
+      miniBossAddsHpFraction: (miniBoss['addsHpFraction'] as num?)?.toDouble() ?? 0.35,
+      miniBossAddsSpeedVariance: (miniBoss['addsSpeedVariance'] as num?)?.toDouble() ?? 0.05,
+      miniBossAddsStaggerDistance: (miniBoss['addsStaggerDistance'] as num?)?.toDouble() ?? 0.10,
       spawnBaseCount: (spawn['baseCount'] as num?)?.toInt() ?? 6,
       spawnCountPerWave: (spawn['countPerWave'] as num?)?.toInt() ?? 2,
       spawnMinCount: (spawn['minCount'] as num?)?.toInt() ?? 4,
@@ -193,6 +230,9 @@ class TdBalanceConfig {
       rangedAttackInterval: (ranged['attackInterval'] as num?)?.toDouble() ?? 1.0,
       supportAttackInterval: (support['attackInterval'] as num?)?.toDouble() ?? 2.0,
       aoeAttackInterval: (aoe['attackInterval'] as num?)?.toDouble() ?? 1.3,
+      meleeAttackRange: (melee['attackRange'] as num?)?.toDouble() ?? 0.20,
+      rangedAttackRange: (ranged['attackRange'] as num?)?.toDouble() ?? 0.45,
+      aoeAttackRange: (aoe['attackRange'] as num?)?.toDouble() ?? 0.30,
       linearPhaseEnd: (scaling['linearPhaseEnd'] as num?)?.toInt() ?? 10,
       linearRate: (scaling['linearRate'] as num?)?.toDouble() ?? 0.12,
       exponentialBase: (scaling['exponentialBase'] as num?)?.toDouble() ?? 1.96,
@@ -223,5 +263,19 @@ class TdBalanceConfig {
       empowerCost: (valor['empowerCost'] as num?)?.toInt() ?? 2,
       sixthTowerLevel: (valor['sixthTowerLevel'] as num?)?.toInt() ?? 5,
     );
+  }
+
+  /// Get attack range for a given archetype.
+  double attackRangeFor(TowerArchetype archetype) {
+    switch (archetype) {
+      case TowerArchetype.melee:
+        return meleeAttackRange;
+      case TowerArchetype.ranged:
+        return rangedAttackRange;
+      case TowerArchetype.aoe:
+        return aoeAttackRange;
+      case TowerArchetype.support:
+        return 0.0;
+    }
   }
 }

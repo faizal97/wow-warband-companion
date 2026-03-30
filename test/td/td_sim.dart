@@ -138,6 +138,7 @@ class SimResult {
   final bool cleared;
   final int livesRemaining;
   final int wavesCompleted;
+  final int totalWaves;
   final int enemiesKilled;
   final int totalTicks;
   final List<String> waveLog;
@@ -151,6 +152,7 @@ class SimResult {
     required this.cleared,
     required this.livesRemaining,
     required this.wavesCompleted,
+    required this.totalWaves,
     required this.enemiesKilled,
     required this.totalTicks,
     this.waveLog = const [],
@@ -161,7 +163,7 @@ class SimResult {
 
   @override
   String toString() => '${cleared ? "CLEAR" : "DEPLETE"} '
-      '| Lives: $livesRemaining | Waves: $wavesCompleted/5 '
+      '| Lives: $livesRemaining | Waves: $wavesCompleted/$totalWaves '
       '| Kills: $enemiesKilled | Time: ${timeSeconds.toStringAsFixed(1)}s';
 
   /// Print the full combat log to stdout.
@@ -467,6 +469,7 @@ class TdSim {
       cleared: game.phase == TdGamePhase.victory,
       livesRemaining: game.lives,
       wavesCompleted: game.currentWave,
+      totalWaves: game.totalWaves,
       enemiesKilled: game.enemiesKilled,
       totalTicks: tick,
       waveLog: waveLog,

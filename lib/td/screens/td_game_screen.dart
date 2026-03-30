@@ -797,7 +797,11 @@ class _TdGameScreenState extends State<TdGameScreen>
       (h) => h.enemyId == enemy.id && h.progress > 0.5 && h.progress < 0.9,
     );
 
-    final baseColor = enemy.isBoss ? dungeon.bossColor : dungeon.enemyColor;
+    final baseColor = enemy.isBoss
+        ? (_game.currentWave == _game.config.miniBossWave
+            ? dungeon.miniBossColor
+            : dungeon.bossColor)
+        : dungeon.enemyColor;
     final hpBarColor = baseColor;
     final enemyFill = isBeingHit
         ? Colors.white.withValues(alpha: 0.9)
@@ -887,7 +891,11 @@ class _TdGameScreenState extends State<TdGameScreen>
 
   /// Get enemy image asset path from dungeon definition, or null if not set.
   String? _enemyImagePath(TdEnemy enemy, TdDungeonDef dungeon) {
-    return enemy.isBoss ? dungeon.bossImage : dungeon.enemyImage;
+    if (!enemy.isBoss) return dungeon.enemyImage;
+    // Mini-boss wave uses mini-boss image, final boss wave uses boss image
+    return _game.currentWave == _game.config.miniBossWave
+        ? (dungeon.miniBossImage ?? dungeon.bossImage)
+        : dungeon.bossImage;
   }
 
   /// Build enemy visual content — image asset if available, icon fallback.
@@ -1802,7 +1810,9 @@ class _TdGameScreenState extends State<TdGameScreen>
                 final innerSize =
                     (enemy.isBoss ? 44.0 : 28.0) * scale;
                 final baseColor = enemy.isBoss
-                    ? _game.keystone.dungeon.bossColor
+                    ? (_game.currentWave == _game.config.miniBossWave
+                        ? _game.keystone.dungeon.miniBossColor
+                        : _game.keystone.dungeon.bossColor)
                     : _game.keystone.dungeon.enemyColor;
 
                 return Positioned(
@@ -2023,13 +2033,15 @@ class _TdGameScreenState extends State<TdGameScreen>
     final active = tower.activeAbility;
     final ultimate = tower.ultimateAbility;
     final cellWidth = 52.0 * scale;
+    final activeRadius = 5.0 * scale;
+    final ultRadius = 4.0 * scale;
 
     return SizedBox(
       width: cellWidth,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Active ability button (separate tap zone) ──
+          // ── Active ability button ──
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -2041,55 +2053,83 @@ class _TdGameScreenState extends State<TdGameScreen>
               height: 36 * scale,
               child: Stack(
                 children: [
-                  // Background circle
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: tower.canUseActive
-                          ? towerColor.withValues(alpha: 0.15)
-                          : AppTheme.surface,
-                      border: Border.all(
-                        color: tower.canUseActive
-                            ? towerColor.withValues(alpha: 0.9)
-                            : AppTheme.textTertiary.withValues(alpha: 0.3),
-                        width: tower.canUseActive ? 2.0 : 1.0,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        active?.name.substring(0, 1) ?? '?',
-                        style: GoogleFonts.rajdhani(
-                          fontSize: 14 * scale,
-                          fontWeight: FontWeight.w700,
-                          color: tower.canUseActive
-                              ? Colors.white
-                              : AppTheme.textTertiary,
-                        ),
-                      ),
+                  // Spell icon (clipped to rounded square)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(activeRadius),
+                    child: SizedBox.expand(
+                      child: active?.icon != null
+                          ? Image.asset(
+                              'assets/td/icons/abilities/${active!.icon}.jpg',
+                              fit: BoxFit.cover,
+                              color: tower.canUseActive
+                                  ? null
+                                  : const Color(0xCC000000),
+                              colorBlendMode: tower.canUseActive
+                                  ? null
+                                  : BlendMode.darken,
+                            )
+                          : Container(
+                              color: tower.canUseActive
+                                  ? towerColor.withValues(alpha: 0.15)
+                                  : AppTheme.surface,
+                              child: Center(
+                                child: Text(
+                                  active?.name.substring(0, 1) ?? '?',
+                                  style: GoogleFonts.rajdhani(
+                                    fontSize: 14 * scale,
+                                    fontWeight: FontWeight.w700,
+                                    color: tower.canUseActive
+                                        ? Colors.white
+                                        : AppTheme.textTertiary,
+                                  ),
+                                ),
+                              ),
+                            ),
                     ),
                   ),
-                  // Cooldown sweep overlay
+                  // Cooldown sweep overlay (clipped to rounded square)
                   if (active != null && tower.activeCooldownRemaining > 0)
                     Positioned.fill(
-                      child: CustomPaint(
-                        painter: _CooldownSweepPainter(
-                          progress: tower.activeCooldownRemaining / active.cooldown,
-                          color: Colors.black54,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(activeRadius),
+                        child: CustomPaint(
+                          painter: _CooldownSweepPainter(
+                            progress: tower.activeCooldownRemaining / active.cooldown,
+                            color: const Color(0xAA000000),
+                          ),
                         ),
                       ),
                     ),
-                  // Cooldown text
+                  // Cooldown number
                   if (active != null && tower.activeCooldownRemaining > 0)
                     Center(
                       child: Text(
                         tower.activeCooldownRemaining.ceil().toString(),
                         style: GoogleFonts.rajdhani(
-                          fontSize: 11 * scale,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white70,
+                          fontSize: 12 * scale,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: const [
+                            Shadow(color: Colors.black, blurRadius: 3),
+                            Shadow(color: Colors.black, blurRadius: 6),
+                          ],
                         ),
                       ),
                     ),
+                  // Border frame
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(activeRadius),
+                        border: Border.all(
+                          color: tower.canUseActive
+                              ? towerColor
+                              : AppTheme.textTertiary.withValues(alpha: 0.25),
+                          width: tower.canUseActive ? 1.5 : 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -2101,7 +2141,7 @@ class _TdGameScreenState extends State<TdGameScreen>
             margin: const EdgeInsets.symmetric(vertical: 2),
             color: towerColor.withValues(alpha: 0.4),
           ),
-          // ── Ultimate button (separate tap zone) ──
+          // ── Ultimate button ──
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
@@ -2113,26 +2153,46 @@ class _TdGameScreenState extends State<TdGameScreen>
               height: 28 * scale,
               child: Stack(
                 children: [
-                  // Charge ring
+                  // Spell icon (clipped to rounded square)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(ultRadius),
+                    child: SizedBox.expand(
+                      child: ultimate?.icon != null
+                          ? Image.asset(
+                              'assets/td/icons/abilities/${ultimate!.icon}.jpg',
+                              fit: BoxFit.cover,
+                              color: tower.canUseUltimate
+                                  ? null
+                                  : const Color(0xDD000000),
+                              colorBlendMode: tower.canUseUltimate
+                                  ? null
+                                  : BlendMode.darken,
+                            )
+                          : Container(
+                              color: AppTheme.surface,
+                              child: Center(
+                                child: Text(
+                                  ultimate?.name.substring(0, 1) ?? '?',
+                                  style: GoogleFonts.rajdhani(
+                                    fontSize: 10 * scale,
+                                    fontWeight: FontWeight.w700,
+                                    color: tower.canUseUltimate
+                                        ? const Color(0xFFFFD700)
+                                        : AppTheme.textTertiary.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                  // Charge border (rounded rect progress)
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: _ChargeRingPainter(
+                      painter: _ChargeRRectPainter(
                         progress: tower.ultimateChargeProgress,
                         color: towerColor,
                         isReady: tower.canUseUltimate,
-                      ),
-                    ),
-                  ),
-                  // Ultimate icon
-                  Center(
-                    child: Text(
-                      ultimate?.name.substring(0, 1) ?? '?',
-                      style: GoogleFonts.rajdhani(
-                        fontSize: 10 * scale,
-                        fontWeight: FontWeight.w700,
-                        color: tower.canUseUltimate
-                            ? const Color(0xFFFFD700)
-                            : AppTheme.textTertiary.withValues(alpha: 0.5),
+                        borderRadius: ultRadius,
                       ),
                     ),
                   ),
@@ -2349,6 +2409,23 @@ class _TdGameScreenState extends State<TdGameScreen>
   Widget _buildWaveClearBanner() {
     final nextWave = _game.currentWave + 1;
     final isBossWave = nextWave == _game.totalWaves;
+    final isMiniBossWave = nextWave == _game.config.miniBossWave;
+    final isBossOrMiniBoss = isBossWave || isMiniBossWave;
+
+    // Pick the right image and color for boss/mini-boss preview
+    final bossImage = isBossWave
+        ? _game.keystone.dungeon.bossImage
+        : isMiniBossWave
+            ? _game.keystone.dungeon.miniBossImage
+            : null;
+    final bossColor = isBossWave
+        ? _game.keystone.dungeon.bossColor
+        : _game.keystone.dungeon.miniBossColor;
+    final bossLabel = isBossWave
+        ? 'BOSS WAVE${_game.keystone.hasTyrannical ? " (Tyrannical!)" : ""}'
+        : isMiniBossWave
+            ? 'MINI-BOSS: ${_game.keystone.dungeon.miniBossName ?? "???"}'
+            : '';
 
     return Container(
       color: AppTheme.surfaceElevated,
@@ -2370,21 +2447,21 @@ class _TdGameScreenState extends State<TdGameScreen>
             ),
           ),
           const SizedBox(width: 10),
-          if (isBossWave && _game.keystone.dungeon.bossImage != null) ...[
+          if (isBossOrMiniBoss && bossImage != null) ...[
             Container(
               width: 32,
               height: 32,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: _game.keystone.dungeon.bossColor.withValues(alpha: 0.5),
+                  color: bossColor.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(5),
                 child: Image.asset(
-                  _game.keystone.dungeon.bossImage!,
+                  bossImage,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
@@ -2394,15 +2471,15 @@ class _TdGameScreenState extends State<TdGameScreen>
           ],
           Expanded(
             child: Text(
-              isBossWave
-                  ? 'Next: BOSS WAVE${_game.keystone.hasTyrannical ? " (Tyrannical!)" : ""}'
+              isBossOrMiniBoss
+                  ? 'Next: $bossLabel'
                   : 'Next: 5–8 enemies${_game.keystone.hasFortified ? " (Fortified)" : ""}',
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: isBossWave
-                    ? _game.keystone.dungeon.bossColor
+                color: isBossOrMiniBoss
+                    ? bossColor
                     : AppTheme.textSecondary,
-                fontWeight: isBossWave ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: isBossOrMiniBoss ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ),
@@ -3421,59 +3498,81 @@ class _CooldownSweepPainter extends CustomPainter {
       old.progress != progress;
 }
 
-/// Ring painter showing ultimate charge progress.
-class _ChargeRingPainter extends CustomPainter {
+/// Rounded-rect border painter showing ultimate charge progress.
+class _ChargeRRectPainter extends CustomPainter {
   final double progress; // 0.0 to 1.0
   final Color color;
   final bool isReady;
+  final double borderRadius;
 
-  _ChargeRingPainter({
+  _ChargeRRectPainter({
     required this.progress,
     required this.color,
     required this.isReady,
+    required this.borderRadius,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 2;
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
+      Radius.circular(borderRadius),
+    );
 
-    // Background ring
+    // Background border
     final bgPaint = Paint()
-      ..color = Colors.white12
+      ..color = Colors.white10
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    canvas.drawCircle(center, radius, bgPaint);
+      ..strokeWidth = 2.0;
+    canvas.drawRRect(rrect, bgPaint);
 
     if (progress <= 0) return;
 
-    // Charge progress arc
-    final fgPaint = Paint()
-      ..color = isReady ? const Color(0xFFFFD700) : color.withValues(alpha: 0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      2 * pi * progress,
-      false,
-      fgPaint,
-    );
+    // Build path starting from top-center, clockwise
+    final r = borderRadius;
+    final rect = rrect.outerRect;
+    final midX = rect.left + rect.width / 2;
+    final path = Path()
+      ..moveTo(midX, rect.top)
+      ..lineTo(rect.right - r, rect.top)
+      ..arcToPoint(Offset(rect.right, rect.top + r),
+          radius: Radius.circular(r))
+      ..lineTo(rect.right, rect.bottom - r)
+      ..arcToPoint(Offset(rect.right - r, rect.bottom),
+          radius: Radius.circular(r))
+      ..lineTo(rect.left + r, rect.bottom)
+      ..arcToPoint(Offset(rect.left, rect.bottom - r),
+          radius: Radius.circular(r))
+      ..lineTo(rect.left, rect.top + r)
+      ..arcToPoint(Offset(rect.left + r, rect.top),
+          radius: Radius.circular(r))
+      ..lineTo(midX, rect.top);
 
-    // Glow when ready
+    // Extract progress portion
+    final metrics = path.computeMetrics().first;
+    final drawLength = metrics.length * progress.clamp(0.0, 1.0);
+    final progressPath = metrics.extractPath(0, drawLength);
+
+    final fgPaint = Paint()
+      ..color = isReady ? const Color(0xFFFFD700) : color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(progressPath, fgPaint);
+
+    // Golden glow when fully charged
     if (isReady) {
       final glowPaint = Paint()
-        ..color = const Color(0xFFFFD700).withValues(alpha: 0.3)
+        ..color = const Color(0xFFFFD700).withValues(alpha: 0.25)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 5
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(center, radius, glowPaint);
+      canvas.drawRRect(rrect, glowPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _ChargeRingPainter old) =>
+  bool shouldRepaint(covariant _ChargeRRectPainter old) =>
       old.progress != progress || old.isReady != isReady;
 }
 
